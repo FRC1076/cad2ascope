@@ -69,6 +69,7 @@ def manifest_json(
     source_name: str,
     source_sha256: str,
     mesh_stats: MeshStats | None = None,
+    onshape_source: dict | None = None,
 ) -> dict:
     """Record of what made this model. No timestamps, so an unchanged input gives an unchanged file."""
     cfg = model.config
@@ -83,6 +84,7 @@ def manifest_json(
             "onshape_url": cfg.robot.onshape_url,
             "configuration": cfg.robot.configuration,
             "version": cfg.robot.version,
+            "onshape": onshape_source,
         },
         "robot": {"name": cfg.robot.name, "folder": cfg.robot.folder, "origin_frame": cfg.robot.origin_frame},
         "base": {

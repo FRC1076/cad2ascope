@@ -35,7 +35,53 @@ def build_parser() -> argparse.ArgumentParser:
         "-o", "--out", default="assets/advantagescope", help="custom assets folder (default assets/advantagescope)"
     )
     p.add_argument("--repo-root", default=".", help="robot repo root, for relative paths in the config (default .)")
+
+    p = sub.add_parser("fetch", help="export the assembly from Onshape through the API (cached by Version)")
+    p.add_argument("-c", "--config", default=CONFIG_NAME, help=f"team config (default {CONFIG_NAME})")
+    p.add_argument("--workspace", action="store_true", help="export the live workspace instead of a Version (preview)")
+    p.add_argument("--cache-dir", help="where exports are cached (default ~/.cache/cad2ascope or $CAD2ASCOPE_CACHE)")
+
+    p = sub.add_parser("run", help="fetch from Onshape (or use --zip), then build")
+    p.add_argument("-c", "--config", default=CONFIG_NAME, help=f"team config (default {CONFIG_NAME})")
+    p.add_argument("--zip", help="use this URDF zip (for example one dropped in cad/drops/) instead of the API")
+    p.add_argument("--workspace", action="store_true", help="export the live workspace instead of a Version (preview)")
+    p.add_argument("--cache-dir", help="where exports are cached (default ~/.cache/cad2ascope or $CAD2ASCOPE_CACHE)")
+    p.add_argument(
+        "-o", "--out", default="assets/advantagescope", help="custom assets folder (default assets/advantagescope)"
+    )
+    p.add_argument("--repo-root", default=".", help="robot repo root, for relative paths in the config (default .)")
     return parser
+
+
+def _fetch(args):
+    from pathlib import Path
+
+    from cad2ascope.config import load_config
+    from cad2ascope.onshape import fetch
+
+    cfg = load_config(args.config)
+    if not cfg.robot.onshape_url:
+        raise CadError(
+            f"{args.config} has no robot.onshape_url. Paste the main assembly's URL there, or pass a zip with --zip."
+        )
+    return fetch(
+        cfg.robot.onshape_url,
+        cfg.robot.version,
+        cfg.robot.configuration,
+        workspace=args.workspace,
+        cache_dir=Path(args.cache_dir) if args.cache_dir else None,
+        log=lambda m: print(m, file=sys.stderr),
+    )
+
+
+def _print_build(result) -> None:
+    for w in result.warnings:
+        print(f"Warning: {w}", file=sys.stderr)
+    comps = len(result.model.components)
+    print(
+        f"Built {result.folder}: base model + {comps} moving component{'s' if comps != 1 else ''}, "
+        f"{len(result.cameras)} camera(s), {len(result.frames)} frame(s), {len(result.warnings)} warning(s)."
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -57,14 +103,19 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "build":
             from cad2ascope.build import build
 
-            result = build(args.export, args.config, args.out, args.repo_root)
-            for w in result.warnings:
-                print(f"Warning: {w}", file=sys.stderr)
-            comps = len(result.model.components)
-            print(
-                f"Built {result.folder}: base model + {comps} moving component{'s' if comps != 1 else ''}, "
-                f"{len(result.cameras)} camera(s), {len(result.frames)} frame(s), {len(result.warnings)} warning(s)."
-            )
+            _print_build(build(args.export, args.config, args.out, args.repo_root))
+        elif args.command == "fetch":
+            got = _fetch(args)
+            print(got.zip_path)
+            print(f"{'Cached' if got.cached else 'Exported'}; {got.calls} API call(s).", file=sys.stderr)
+        elif args.command == "run":
+            from cad2ascope.build import build
+
+            if args.zip:
+                _print_build(build(args.zip, args.config, args.out, args.repo_root))
+            else:
+                got = _fetch(args)
+                _print_build(build(got.zip_path, args.config, args.out, args.repo_root, onshape_source=got.source))
     except CadError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1

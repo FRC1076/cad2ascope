@@ -43,6 +43,7 @@ def build(
     config_path: str | Path,
     out_root: str | Path = DEFAULT_OUT,
     repo_root: str | Path = ".",
+    onshape_source: dict | None = None,
 ) -> BuildResult:
     """Build the robot folder. Raises CadError for problems the student must fix; nothing is written in that case."""
     config = load_config(config_path)
@@ -70,6 +71,7 @@ def build(
     sizes = {name: len(data) for name, data in blobs.items()}
     write_json(folder / "config.json", config_json(model, cameras))
     write_json(
-        folder / "manifest.json", manifest_json(model, cameras, frames, reduced, sizes, export_path.name, sha, stats)
+        folder / "manifest.json",
+        manifest_json(model, cameras, frames, reduced, sizes, export_path.name, sha, stats, onshape_source),
     )
     return BuildResult(folder, model, cameras, frames, sizes, stats)

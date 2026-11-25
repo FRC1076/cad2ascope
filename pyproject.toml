@@ -37,6 +37,7 @@ packages = ["src/cad2ascope"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+pythonpath = ["tests"]
 
 [tool.ruff]
 line-length = 120

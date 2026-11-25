@@ -87,9 +87,26 @@ From `src/shared/renderers/field3d/OptimizeGeometries.ts` (used by `loadRobot.ts
 - It round-trips 1,000 uniformly random transforms through config values and AdvantageScope's quaternion math. The worst element error is 3.6 × 10⁻¹⁵, well inside the 1 × 10⁻⁹ requirement.
 - It also checks arbitrary-length random sequences against the port, the gimbal-lock cases, the B3 and B4 compositions, that every fixture's zeroed values rebuild `expected.json`, and the camera view axis.
 
-## Section A: Onshape native URDF export (not started)
+## Section A: Onshape native URDF export (in progress)
 
-Nothing in section A has run. No API keys are set in this environment or saved in the Keychain, and no copy of the 2026 robot has been shared. A1 to A10 are open.
+Copies of the 2025 and 2026 main assemblies now exist (their URLs are in `private/`, not here). Manual exports from the Onshape UI are under way. No API keys are set yet, so A1, A8 and A10 (API request, Named Positions, timing and call counts) are still open.
+
+### A2 (partial): export dialog options, from the Onshape UI on 2026-11-25
+
+Right-click the assembly tab → Export. The dialog was the same on the 2025 and 2026 copies:
+
+| Field | Value seen | Notes |
+| --- | --- | --- |
+| Format | URDF | |
+| Geometry format | GLTF (selected) | Other choices not recorded yet. PLAN §5 lists OBJ, STL and glTF. |
+| Resolution | Medium (default) | Other levels not recorded yet. |
+| Options | Download | The other choice(s) in this dropdown are not recorded yet. |
+| Export rigid subassemblies as a single link | off (default) | This is the October 2026 merge option. It may decide whether we get one link per part or one per rigid group (A3). |
+| Include hidden instances in export | **on, and greyed out** | Hiding a part in Onshape does **not** keep it out of the export. Parts must be suppressed, which is what PLAN §4 C1's `Export=AdvantageScope` configuration does. |
+
+No configuration selector appeared in the dialog. Neither copy appears to have configurations yet, so it is still unknown whether the UI export lets you pick one (C1).
+
+Also seen in the screenshots: the 2026 assembly places its top-level subassemblies with **Planar** and Fastened mates, and both assemblies show error or warning markers on some instances. A Planar mate is not a joint cad2ascope animates. If Onshape exports it as a URDF `planar` joint, the converter freezes it at its export position (it is not one of the Revolute/Slider types that can move). Whether those mates export cleanly is part of A3/A4.
 
 One thing the checklist leaves out: **A5, A6 and A7 require editing the copy** (rename a mate to `j_test`, add `ascope_origin` and `cam_TEST` mate connectors, add a linear relation). The API key is read-only by design, so Claude Code cannot make those edits. Bill or a Design lead makes them in the Onshape UI on the copy, and Claude Code then re-exports through the API.
 

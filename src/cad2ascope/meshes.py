@@ -1,13 +1,13 @@
-"""Place each group's meshes in robot frame and write one .glb per group (PLAN §6.4 step 5).
+"""Place each group's meshes in robot frame (PLAN §6.4 step 5) and write .glb files.
 
-Phase 1 scope: placement and a correct file. Filtering, merging by color, decimation, and NOSIMPLIFY tagging are
-Phase 2. What Phase 1 already guarantees, because AdvantageScope needs it (Phase 0, B6):
+Placement here; filtering, merging by color and decimation are in reduce.py. What the written files guarantee,
+because AdvantageScope needs it (Phase 0, B6):
 
 - every mesh has normals (AdvantageScope discards meshes without them), and
 - every mesh has one material with a base color (AdvantageScope ignores vertex colors and textures).
 
-Source meshes with per-face or per-vertex colors are split into one mesh per color. Each mesh is named
-``<link>`` or ``<link>_<n>`` so Phase 2 can match ``exclude_names`` and ``keep_detail`` patterns against it.
+Source meshes with per-face or per-vertex colors are split into one piece per color. Each piece remembers its link
+and its mesh file name, so reduce.py can match ``exclude_names`` and ``keep_detail`` patterns against whole parts.
 """
 
 from __future__ import annotations
@@ -34,9 +34,13 @@ MESH_TYPES = {".glb", ".gltf", ".stl", ".obj", ".ply", ".off", ".dae"}
 
 @dataclass
 class Part:
-    name: str
+    name: str  # link name, plus _<n> for a link's second and later pieces
     mesh: trimesh.Trimesh  # vertices in robot frame
     color: tuple[int, int, int, int]
+    label: str = ""  # mesh file name without extension, usually the Onshape part name
+    source: tuple[str, int] = ("", 0)  # (link, visual index): all pieces of one part share it
+    local: trimesh.Trimesh | None = None  # the untransformed piece, shared by every instance of the same mesh file
+    matrix: np.ndarray | None = None  # local -> robot frame, so mesh == local transformed by matrix
 
 
 @dataclass
@@ -98,10 +102,21 @@ def load_mesh_file(path: Path) -> list[tuple[trimesh.Trimesh, tuple[int, int, in
         raise CadError(
             f"Mesh file {path.name} could not be read ({type(e).__name__}). Re-export from Onshape."
         ) from None
-    out = []
+    by_color: dict[tuple[int, int, int, int], list[trimesh.Trimesh]] = {}
     for geom in scene.dump(concatenate=False):  # applies each node's transform
         if isinstance(geom, trimesh.Trimesh) and len(geom.faces):
-            out += _split_by_color(geom)
+            for piece, color in _split_by_color(geom):
+                by_color.setdefault(color, []).append(piece)
+    # One mesh per color per file: Onshape writes a part as thousands of small pieces (7,056 for the 2026 turntable
+    # gear), and reducing or drawing them one by one is slow and wasteful.
+    out = []
+    for color, pieces in by_color.items():
+        verts, faces, offset = [], [], 0
+        for p in pieces:
+            verts.append(np.asarray(p.vertices, dtype=np.float64))
+            faces.append(np.asarray(p.faces, dtype=np.int64) + offset)
+            offset += len(p.vertices)
+        out.append((trimesh.Trimesh(np.vstack(verts), np.vstack(faces), process=False), color))
     return out
 
 
@@ -115,7 +130,7 @@ def place_groups(model: Model, export: Export, warnings: Warnings | None = None)
             link = model.robot.links[link_name]
             pose = model.link_pose(link_name)
             n = 0
-            for visual in link.visuals:
+            for vi, visual in enumerate(link.visuals):
                 path = export.resolve_mesh(visual.mesh)
                 if path not in cache:
                     cache[path] = load_mesh_file(path)
@@ -127,7 +142,7 @@ def place_groups(model: Model, export: Export, warnings: Warnings | None = None)
                     m.apply_transform(placement)
                     name = link_name if n == 0 else f"{link_name}_{n}"
                     n += 1
-                    group.parts.append(Part(name, m, color))
+                    group.parts.append(Part(name, m, color, path.stem, (link_name, vi), mesh, placement))
         if gi > 0 and not group.parts:
             comp = model.components[gi - 1]
             warnings.add(
@@ -149,13 +164,18 @@ def _empty_glb() -> bytes:
     return header + struct.pack("<I4s", len(body), b"JSON") + body
 
 
-def glb_bytes(group: GroupMesh) -> bytes:
-    """Binary glTF with normals and one base-color material per color."""
-    if not group.parts:
+def glb_bytes(meshes) -> bytes:
+    """Binary glTF with normals and one base-color material per color.
+
+    ``meshes`` is any sequence of objects with ``name``, ``mesh`` (a Trimesh) and ``color`` (RGBA 0..255), such as
+    reduce.OutMesh or meshes.Part. Node and mesh both carry the name, so a ``NOSIMPLIFY`` tag reaches AdvantageScope.
+    """
+    meshes = list(meshes)
+    if not meshes:
         return _empty_glb()
     scene = trimesh.Scene()
     materials: dict[tuple[int, int, int, int], PBRMaterial] = {}
-    for part in group.parts:
+    for part in meshes:
         mat = materials.get(part.color)
         if mat is None:
             r, g, b, a = part.color

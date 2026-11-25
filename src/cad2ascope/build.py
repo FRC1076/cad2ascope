@@ -12,6 +12,7 @@ from cad2ascope.errors import CadError
 from cad2ascope.export import load_export
 from cad2ascope.grouping import Model, build_model
 from cad2ascope.meshes import glb_bytes, place_groups
+from cad2ascope.reduce import MeshStats, reduce_groups
 
 DEFAULT_OUT = "assets/advantagescope"
 
@@ -23,6 +24,7 @@ class BuildResult:
     cameras: list[Camera]
     frames: list[Frame]
     files: dict[str, int]  # file name -> bytes
+    mesh: MeshStats | None = None
 
     @property
     def warnings(self) -> list[str]:
@@ -51,7 +53,8 @@ def build(
         cameras = find_cameras(model, repo_root)
         frames = find_frames(model)
         groups = place_groups(model, export)
-        blobs = {g.file: glb_bytes(g) for g in groups}
+        reduced, stats = reduce_groups(groups, config.mesh, model.warnings)
+        blobs = {g.file: glb_bytes(g.meshes) for g in reduced}
         sha = export.sha256
 
     folder = Path(out_root) / config.robot.folder
@@ -66,5 +69,7 @@ def build(
         (folder / name).write_bytes(data)
     sizes = {name: len(data) for name, data in blobs.items()}
     write_json(folder / "config.json", config_json(model, cameras))
-    write_json(folder / "manifest.json", manifest_json(model, cameras, frames, groups, sizes, export_path.name, sha))
-    return BuildResult(folder, model, cameras, frames, sizes)
+    write_json(
+        folder / "manifest.json", manifest_json(model, cameras, frames, reduced, sizes, export_path.name, sha, stats)
+    )
+    return BuildResult(folder, model, cameras, frames, sizes, stats)

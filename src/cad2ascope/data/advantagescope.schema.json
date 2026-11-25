@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/FRC1076/cad2ascope/spec/advantagescope.schema.json",
+  "title": "cad2ascope team config (cad/advantagescope.yaml)",
+  "type": "object",
+  "required": ["robot", "signals", "joints"],
+  "additionalProperties": false,
+  "properties": {
+    "robot": {
+      "type": "object",
+      "required": ["name", "folder", "origin_frame"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "folder": {"type": "string", "pattern": "^Robot_[A-Za-z0-9_\\-]+$"},
+        "onshape_url": {"type": "string", "pattern": "^https://[a-z0-9.\\-]+\\.onshape\\.com/documents/[0-9a-f]{24}/[wv]/[0-9a-f]{24}/e/[0-9a-f]{24}"},
+        "configuration": {"type": "string"},
+        "version": {"type": "string", "default": "latest"},
+        "origin_frame": {"type": "string", "default": "ascope_origin"}
+      }
+    },
+    "signals": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {
+        "type": "object",
+        "required": ["units"],
+        "additionalProperties": false,
+        "properties": {"units": {"enum": ["m", "rad"]}}
+      }
+    },
+    "joints": {
+      "type": "object",
+      "propertyNames": {"pattern": "^j_[A-Za-z0-9_]+$"},
+      "additionalProperties": {
+        "type": "object",
+        "required": ["signal"],
+        "additionalProperties": false,
+        "properties": {
+          "signal": {"type": "string"},
+          "ratio": {"type": "number", "default": 1.0, "not": {"const": 0}},
+          "direction": {"enum": [1, -1], "default": 1},
+          "zero_offset_deg": {"type": "number", "description": "revolute joints only"},
+          "zero_offset_m": {"type": "number", "description": "prismatic joints only"}
+        }
+      }
+    },
+    "mesh": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "triangle_budget": {"type": "integer", "minimum": 1000, "default": 300000},
+        "exclude_names": {"type": "array", "items": {"type": "string"}},
+        "min_part_size_mm": {"type": "number", "minimum": 0, "default": 6},
+        "keep_detail": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "cameras": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "frame_prefix": {"type": "string", "default": "cam_"},
+        "photonvision_calibrations": {"type": "string"},
+        "fallback": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "resolution": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
+            "fov_deg": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 180}
+          }
+        }
+      }
+    },
+    "frames": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {"frame_prefix": {"type": "string", "default": "frame_"}}
+    },
+    "codegen": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "java_package": {"type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"},
+        "output": {"type": "string"},
+        "test_output": {"type": "string"}
+      }
+    }
+  }
+}

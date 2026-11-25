@@ -1,0 +1,111 @@
+{
+  "name": "nested_chain",
+  "isFTC": false,
+  "disableSimplification": false,
+  "rotations": [],
+  "position": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "cameras": [
+    {
+      "name": "FRONT_LEFT",
+      "rotations": [
+        {
+          "axis": "x",
+          "degrees": 0.0
+        },
+        {
+          "axis": "y",
+          "degrees": 20.000008572
+        },
+        {
+          "axis": "z",
+          "degrees": -39.999978571
+        }
+      ],
+      "position": [
+        0.348,
+        -0.186,
+        0.333
+      ],
+      "resolution": [
+        1280,
+        800
+      ],
+      "fov": 75.633969179
+    },
+    {
+      "name": "TURRET",
+      "rotations": [
+        {
+          "axis": "x",
+          "degrees": 0.0
+        },
+        {
+          "axis": "y",
+          "degrees": -11.459155903
+        },
+        {
+          "axis": "z",
+          "degrees": -72.811266146
+        }
+      ],
+      "position": [
+        0.17477601,
+        0.078233176,
+        0.506
+      ],
+      "resolution": [
+        1280,
+        800
+      ],
+      "fov": 75.633969179
+    }
+  ],
+  "components": [
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 0.0
+        },
+        {
+          "axis": "y",
+          "degrees": 0.0
+        },
+        {
+          "axis": "z",
+          "degrees": 72.811266146
+        }
+      ],
+      "zeroedPosition": [
+        0.073089165,
+        -0.190089384,
+        -0.386
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 10.96002187
+        },
+        {
+          "axis": "y",
+          "degrees": 3.365816679
+        },
+        {
+          "axis": "z",
+          "degrees": 73.134264371
+        }
+      ],
+      "zeroedPosition": [
+        -0.122927705,
+        -0.190089384,
+        -0.470965999
+      ]
+    }
+  ]
+}

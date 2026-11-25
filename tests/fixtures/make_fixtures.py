@@ -33,9 +33,11 @@ import numpy as np
 import trimesh
 
 HERE = Path(__file__).parent
+ZIP_DATE = (2026, 1, 1, 0, 0, 0)
 
 
 # ---------------------------------------------------------------- math helpers
+
 
 def rpy_matrix(r: float, p: float, y: float) -> np.ndarray:
     """URDF rpy: fixed-axis roll about X, then pitch about Y, then yaw about Z."""
@@ -53,31 +55,37 @@ def transform(xyz=(0, 0, 0), rpy=(0, 0, 0)) -> np.ndarray:
     return t
 
 
+def num(x: float) -> str:
+    """Shortest text that reads back as the same float, so the URDF matches expected.json exactly."""
+    return repr(float(x))
+
+
 def fmt(v) -> str:
-    return " ".join(f"{x:.6g}" for x in v)
+    return " ".join(num(x) for x in v)
 
 
 # ---------------------------------------------------------------- model
 
+
 @dataclass
 class Link:
     name: str
-    box: tuple[float, float, float] | None = None       # size in meters, None = no visual
-    box_xyz: tuple[float, float, float] = (0, 0, 0)     # visual origin in link frame
+    box: tuple[float, float, float] | None = None  # size in meters, None = no visual
+    box_xyz: tuple[float, float, float] = (0, 0, 0)  # visual origin in link frame
     color: tuple[int, int, int, int] = (128, 128, 128, 255)
 
 
 @dataclass
 class Joint:
     name: str
-    kind: str                     # fixed | revolute | prismatic | continuous
+    kind: str  # fixed | revolute | prismatic | continuous
     parent: str
     child: str
     xyz: tuple = (0, 0, 0)
     rpy: tuple = (0, 0, 0)
     axis: tuple = (0, 0, 1)
-    limits: tuple | None = None   # (lower, upper)
-    mimic: tuple | None = None    # (joint, multiplier, offset)
+    limits: tuple | None = None  # (lower, upper)
+    mimic: tuple | None = None  # (joint, multiplier, offset)
 
 
 @dataclass
@@ -87,7 +95,7 @@ class Fixture:
     links: list[Link] = field(default_factory=list)
     joints: list[Joint] = field(default_factory=list)
     config: str = ""
-    expect_error: str | None = None   # substring the converter's error must mention
+    expect_error: str | None = None  # substring the converter's error must mention
 
     def link(self, *a, **k):
         self.links.append(Link(*a, **k))
@@ -102,6 +110,7 @@ class Fixture:
 
 
 # ---------------------------------------------------------------- writers
+
 
 def write_urdf(fx: Fixture, out: Path) -> None:
     lines = ['<?xml version="1.0"?>', f'<robot name="{fx.name}">']
@@ -123,9 +132,9 @@ def write_urdf(fx: Fixture, out: Path) -> None:
         if j.kind != "fixed":
             lines.append(f'    <axis xyz="{fmt(j.axis)}"/>')
         if j.limits:
-            lines.append(f'    <limit lower="{j.limits[0]:.6g}" upper="{j.limits[1]:.6g}" effort="0" velocity="0"/>')
+            lines.append(f'    <limit lower="{num(j.limits[0])}" upper="{num(j.limits[1])}" effort="0" velocity="0"/>')
         if j.mimic:
-            lines.append(f'    <mimic joint="{j.mimic[0]}" multiplier="{j.mimic[1]:.6g}" offset="{j.mimic[2]:.6g}"/>')
+            lines.append(f'    <mimic joint="{j.mimic[0]}" multiplier="{num(j.mimic[1])}" offset="{num(j.mimic[2])}"/>')
         lines.append("  </joint>")
     lines.append("</robot>")
     (out / "robot.urdf").write_text("\n".join(lines) + "\n")
@@ -156,6 +165,7 @@ def expected(fx: Fixture) -> dict:
     order: list[str] = []
 
     import yaml  # local import: only needed when generating
+
     cfg = yaml.safe_load(fx.config)
     articulated = set(cfg.get("joints", {}))
 
@@ -180,23 +190,25 @@ def expected(fx: Fixture) -> dict:
     for i, jn in enumerate(order):
         j = joint_by_name[jn]
         t0 = robot_from_world @ world[j.child]
-        comps.append({
-            "index": i,
-            "joint": jn,
-            "type": j.kind,
-            "child_link": j.child,
-            "T0": np.round(t0, 9).tolist(),
-            "zeroed": np.round(np.linalg.inv(t0), 9).tolist(),
-            "axis_in_child_frame": list(j.axis),
-        })
+        comps.append(
+            {
+                "index": i,
+                "joint": jn,
+                "type": j.kind,
+                "child_link": j.child,
+                "T0": np.round(t0, 9).tolist(),
+                "zeroed": np.round(np.linalg.inv(t0), 9).tolist(),
+                "axis_in_child_frame": list(j.axis),
+            }
+        )
     cam_prefix = cfg.get("cameras", {}).get("frame_prefix", "cam_")
     frm_prefix = cfg.get("frames", {}).get("frame_prefix", "frame_")
     return {
         "root_link": root,
         "components": comps,
         "frozen_joints": sorted(movable - articulated),
-        "cameras": {ln.name[len(cam_prefix):]: in_robot(ln.name) for ln in fx.links if ln.name.startswith(cam_prefix)},
-        "frames": {ln.name[len(frm_prefix):]: in_robot(ln.name) for ln in fx.links if ln.name.startswith(frm_prefix)},
+        "cameras": {ln.name[len(cam_prefix) :]: in_robot(ln.name) for ln in fx.links if ln.name.startswith(cam_prefix)},
+        "frames": {ln.name[len(frm_prefix) :]: in_robot(ln.name) for ln in fx.links if ln.name.startswith(frm_prefix)},
         "note": "4x4 matrices, row-major, meters. ROBOT frame = origin_frame (+X front, +Y left, +Z up, floor plane).",
     }
 
@@ -223,12 +235,15 @@ def single_revolute() -> Fixture:
     base(fx)
     fx.link("arm", box=(0.5, 0.05, 0.05), box_xyz=(0.25, 0, 0), color=(220, 120, 0, 255))
     fx.joint("j_arm", "revolute", "drivetrain", "arm", (0.2, 0.1, 0.5), (0, 0, 0), (0, 1, 0), (-1.0, 2.0))
-    fx.config = BASE_CFG.format(name=fx.name) + """\
+    fx.config = (
+        BASE_CFG.format(name=fx.name)
+        + """\
 signals:
   arm: {units: rad}
 joints:
   j_arm: {signal: arm}
 """
+    )
     return fx
 
 
@@ -237,17 +252,23 @@ def prismatic() -> Fixture:
     base(fx)
     fx.link("carriage", box=(0.2, 0.3, 0.1), color=(0, 140, 200, 255))
     fx.joint("j_lift", "prismatic", "drivetrain", "carriage", (-0.1, 0, 0.2), (0, 0, 0), (0, 0, 1), (0.0, 1.2))
-    fx.config = BASE_CFG.format(name=fx.name) + """\
+    fx.config = (
+        BASE_CFG.format(name=fx.name)
+        + """\
 signals:
   lift: {units: m}
 joints:
   j_lift: {signal: lift}
 """
+    )
     return fx
 
 
 def nested_chain() -> Fixture:
-    fx = Fixture("nested_chain", "Turret on the drivetrain, hood on the turret, one camera on each, and a measured frame. Mirrors the 2026 robot.")
+    fx = Fixture(
+        "nested_chain",
+        "Turret on the drivetrain, hood on the turret, one camera on each, and a measured frame. Mirrors the 2026 robot.",
+    )
     base(fx)
     fx.link("turret", box=(0.25, 0.25, 0.08), color=(60, 60, 60, 255))
     fx.joint("j_turret", "revolute", "drivetrain", "turret", (-0.076, 0.14, 0.286), (0, 0, 0.3), (0, 0, 1), (-3.0, 3.0))
@@ -256,7 +277,9 @@ def nested_chain() -> Fixture:
     fx.frame("cam_FRONT_LEFT", "drivetrain", (0.236, 0.328, 0.233), (0, 0.349066, 0.872665))
     fx.frame("cam_TURRET", "turret", (0.05, 0, 0.12), (0, -0.2, 0))
     fx.frame("frame_turret_pivot", "drivetrain", (-0.076, 0.14, 0.286))
-    fx.config = BASE_CFG.format(name=fx.name) + """\
+    fx.config = (
+        BASE_CFG.format(name=fx.name)
+        + """\
 signals:
   turret: {units: rad}
   hood: {units: rad}
@@ -269,20 +292,37 @@ cameras:
 frames:
   frame_prefix: frame_
 """
+    )
     return fx
 
 
 def coupled() -> Fixture:
-    fx = Fixture("coupled", "Two-stage cascade elevator (carriage mated to stage 1, mimic relation) with a wrist on the carriage. Mirrors the 2025 robot.")
+    fx = Fixture(
+        "coupled",
+        "Two-stage cascade elevator (carriage mated to stage 1, mimic relation) with a wrist on the carriage. Mirrors the 2025 robot.",
+    )
     base(fx)
     fx.link("stage1", box=(0.05, 0.4, 0.9), box_xyz=(0, 0, 0.45), color=(150, 150, 150, 255))
-    fx.joint("j_elevator_stage1", "prismatic", "drivetrain", "stage1", (0.05, 0.127, 0.1), (0, 0, 0), (0, 0, 1), (0.0, 0.7))
+    fx.joint(
+        "j_elevator_stage1", "prismatic", "drivetrain", "stage1", (0.05, 0.127, 0.1), (0, 0, 0), (0, 0, 1), (0.0, 0.7)
+    )
     fx.link("carriage", box=(0.1, 0.3, 0.15), color=(0, 140, 200, 255))
-    fx.joint("j_elevator_carriage", "prismatic", "stage1", "carriage", (0.06, 0, 0.1), (0, 0, 0), (0, 0, 1), (0.0, 0.7),
-             mimic=("j_elevator_stage1", 1.0, 0.0))
+    fx.joint(
+        "j_elevator_carriage",
+        "prismatic",
+        "stage1",
+        "carriage",
+        (0.06, 0, 0.1),
+        (0, 0, 0),
+        (0, 0, 1),
+        (0.0, 0.7),
+        mimic=("j_elevator_stage1", 1.0, 0.0),
+    )
     fx.link("wrist", box=(0.3, 0.1, 0.05), box_xyz=(0.15, 0, 0), color=(220, 120, 0, 255))
     fx.joint("j_wrist", "revolute", "carriage", "wrist", (0.05, 0, 0.05), (0, 0, 0), (0, 1, 0), (-1.5, 1.5))
-    fx.config = BASE_CFG.format(name=fx.name) + """\
+    fx.config = (
+        BASE_CFG.format(name=fx.name)
+        + """\
 signals:
   elevator: {units: m}
   wrist: {units: rad}
@@ -291,28 +331,37 @@ joints:
   j_elevator_carriage: {signal: elevator, ratio: 0.5}
   j_wrist:             {signal: wrist, zero_offset_deg: 10}
 """
+    )
     return fx
 
 
 def frozen() -> Fixture:
-    fx = Fixture("frozen", "Two movable joints; only one is listed, so the other must be frozen and merged into the base.")
+    fx = Fixture(
+        "frozen", "Two movable joints; only one is listed, so the other must be frozen and merged into the base."
+    )
     base(fx)
     fx.link("intake", box=(0.3, 0.6, 0.05), color=(0, 160, 80, 255))
     fx.joint("j_intake", "revolute", "drivetrain", "intake", (0.35, 0, 0.15), (0, 0, 0), (0, 1, 0), (0.0, 1.6))
     fx.link("flap", box=(0.1, 0.2, 0.02), color=(200, 200, 0, 255))
     fx.joint("Revolute 7", "revolute", "drivetrain", "flap", (-0.3, 0, 0.2), (0, 0, 0), (1, 0, 0), (0.0, 1.0))
-    fx.config = BASE_CFG.format(name=fx.name) + """\
+    fx.config = (
+        BASE_CFG.format(name=fx.name)
+        + """\
 signals:
   intake: {units: rad}
 joints:
   j_intake: {signal: intake}
 """
+    )
     return fx
 
 
 def invalid_two_parents() -> Fixture:
-    fx = Fixture("invalid_two_parents", "A link with two parent joints, as from a closed linkage. Must fail and name the link.",
-                 expect_error="bar")
+    fx = Fixture(
+        "invalid_two_parents",
+        "A link with two parent joints, as from a closed linkage. Must fail and name the link.",
+        expect_error="bar",
+    )
     base(fx)
     fx.link("left_arm", box=(0.4, 0.05, 0.05))
     fx.link("right_arm", box=(0.4, 0.05, 0.05))
@@ -321,27 +370,36 @@ def invalid_two_parents() -> Fixture:
     fx.joint("j_right", "revolute", "drivetrain", "right_arm", (0, -0.25, 0.3), axis=(0, 1, 0))
     fx.joint("j_bar_left", "revolute", "left_arm", "bar", (0.4, -0.25, 0), axis=(0, 1, 0))
     fx.joint("j_bar_right", "revolute", "right_arm", "bar", (0.4, 0.25, 0), axis=(0, 1, 0))
-    fx.config = BASE_CFG.format(name=fx.name) + """\
+    fx.config = (
+        BASE_CFG.format(name=fx.name)
+        + """\
 signals:
   arm: {units: rad}
 joints:
   j_left: {signal: arm}
 """
+    )
     return fx
 
 
 def missing_origin() -> Fixture:
-    fx = Fixture("missing_origin", "No ascope_origin frame. Must fail with a message telling the student to add it on the drivetrain.",
-                 expect_error="ascope_origin")
+    fx = Fixture(
+        "missing_origin",
+        "No ascope_origin frame. Must fail with a message telling the student to add it on the drivetrain.",
+        expect_error="ascope_origin",
+    )
     fx.link("drivetrain", box=(0.7, 0.7, 0.1), box_xyz=(0, 0, 0.05))
     fx.link("arm", box=(0.5, 0.05, 0.05))
     fx.joint("j_arm", "revolute", "drivetrain", "arm", (0.2, 0, 0.5), axis=(0, 1, 0))
-    fx.config = BASE_CFG.format(name=fx.name) + """\
+    fx.config = (
+        BASE_CFG.format(name=fx.name)
+        + """\
 signals:
   arm: {units: rad}
 joints:
   j_arm: {signal: arm}
 """
+    )
     return fx
 
 
@@ -367,9 +425,18 @@ def main() -> None:
             for p in sorted(out.rglob("*")):
                 if p.name in ("advantagescope.yaml", "expected.json", "expected_error.txt"):
                     continue  # the zip mimics an Onshape export: URDF and meshes only
-                z.write(p, p.relative_to(out))
-        index.append({"name": fx.name, "description": fx.description,
-                      "valid": fx.expect_error is None, "expect_error_mentions": fx.expect_error})
+                # Fixed timestamp so regenerating produces byte-identical zips.
+                info = zipfile.ZipInfo(str(p.relative_to(out)) + ("/" if p.is_dir() else ""), date_time=ZIP_DATE)
+                info.compress_type = zipfile.ZIP_DEFLATED
+                z.writestr(info, b"" if p.is_dir() else p.read_bytes())
+        index.append(
+            {
+                "name": fx.name,
+                "description": fx.description,
+                "valid": fx.expect_error is None,
+                "expect_error_mentions": fx.expect_error,
+            }
+        )
     (HERE / "index.json").write_text(json.dumps(index, indent=2) + "\n")
     print(f"wrote {len(index)} fixtures to {HERE}")
 

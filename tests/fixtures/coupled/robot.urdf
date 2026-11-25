@@ -2,7 +2,7 @@
 <robot name="coupled">
   <link name="drivetrain">
     <visual>
-      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <origin xyz="0.0 0.0 0.05" rpy="0 0 0"/>
       <geometry><mesh filename="meshes/drivetrain.glb"/></geometry>
     </visual>
   </link>
@@ -10,47 +10,47 @@
   </link>
   <link name="stage1">
     <visual>
-      <origin xyz="0 0 0.45" rpy="0 0 0"/>
+      <origin xyz="0.0 0.0 0.45" rpy="0 0 0"/>
       <geometry><mesh filename="meshes/stage1.glb"/></geometry>
     </visual>
   </link>
   <link name="carriage">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
       <geometry><mesh filename="meshes/carriage.glb"/></geometry>
     </visual>
   </link>
   <link name="wrist">
     <visual>
-      <origin xyz="0.15 0 0" rpy="0 0 0"/>
+      <origin xyz="0.15 0.0 0.0" rpy="0 0 0"/>
       <geometry><mesh filename="meshes/wrist.glb"/></geometry>
     </visual>
   </link>
   <joint name="ascope_origin_frame" type="fixed">
     <parent link="drivetrain"/>
     <child link="ascope_origin"/>
-    <origin xyz="0.05 -0.02 -0.1" rpy="0 0 1.5708"/>
+    <origin xyz="0.05 -0.02 -0.1" rpy="0.0 0.0 1.5707963267948966"/>
   </joint>
   <joint name="j_elevator_stage1" type="prismatic">
     <parent link="drivetrain"/>
     <child link="stage1"/>
-    <origin xyz="0.05 0.127 0.1" rpy="0 0 0"/>
-    <axis xyz="0 0 1"/>
-    <limit lower="0" upper="0.7" effort="0" velocity="0"/>
+    <origin xyz="0.05 0.127 0.1" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <limit lower="0.0" upper="0.7" effort="0" velocity="0"/>
   </joint>
   <joint name="j_elevator_carriage" type="prismatic">
     <parent link="stage1"/>
     <child link="carriage"/>
-    <origin xyz="0.06 0 0.1" rpy="0 0 0"/>
-    <axis xyz="0 0 1"/>
-    <limit lower="0" upper="0.7" effort="0" velocity="0"/>
-    <mimic joint="j_elevator_stage1" multiplier="1" offset="0"/>
+    <origin xyz="0.06 0.0 0.1" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 0.0 1.0"/>
+    <limit lower="0.0" upper="0.7" effort="0" velocity="0"/>
+    <mimic joint="j_elevator_stage1" multiplier="1.0" offset="0.0"/>
   </joint>
   <joint name="j_wrist" type="revolute">
     <parent link="carriage"/>
     <child link="wrist"/>
-    <origin xyz="0.05 0 0.05" rpy="0 0 0"/>
-    <axis xyz="0 1 0"/>
+    <origin xyz="0.05 0.0 0.05" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 1.0 0.0"/>
     <limit lower="-1.5" upper="1.5" effort="0" velocity="0"/>
   </joint>
 </robot>

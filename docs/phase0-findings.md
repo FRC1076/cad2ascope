@@ -141,9 +141,26 @@ Neither copy has `ascope_origin`, `cam_` or `frame_` mate connectors, or relatio
 
 Yes. Each glTF has materials with `baseColorFactor`, including transparency (`alphaMode: BLEND`, alpha 0.5). Every source primitive has normals (29,295 in 2026 and 46,749 in 2025, none missing). `cad2ascope build` carries 71 distinct colors into the 2026 base model.
 
-### Rigid-subassembly export (pending)
+### Rigid-subassembly export: same model, less information, so leave it off
 
-A second 2026 export with "Export rigid subassemblies as a single link" turned on is on its way, to see how that option changes the link structure.
+A second 2026 export with "Export rigid subassemblies as a single link" turned on (same copy, same settings otherwise):
+
+| | Option off | Option on |
+| --- | --- | --- |
+| Links / joints | 1,245 / 1,244 | 132 / 131 |
+| Fixed joints | 1,113 | 0 (everything fastened is merged into one link) |
+| Moving joints | 131 | the same 131 |
+| Visuals (meshes) | 1,114 | 1,114 (merged links carry up to 210 visuals each) |
+| `fixed_node_to_root_joint`, `hanging_node_to_root_joint` | present | gone (merged into `root`) |
+| Loop cuts | 30 | 19 |
+| cad2ascope build with the hood listed | 6,343,326 triangles, hood 156,680 | identical triangle counts; hood T0 differs by at most 4 µrad and 1 µm |
+
+Both build to the same model, because cad2ascope merges fastened parts itself. The option still costs something:
+
+- The grounded turret plate is merged into `root`, so cad2ascope can no longer see or report it, although the hood still does not ride on the turret. Unmated parts disappear from view the same way.
+- If mate connectors arrive as links on fixed joints (A6, untested), this option would likely merge them into their parent part and lose `ascope_origin`, `cam_` and `frame_` frames.
+
+Recommendation: keep the option **off** for cad2ascope. Revisit after A6 if connectors survive it and the smaller URDF matters.
 
 ### What Bill needs to provide
 

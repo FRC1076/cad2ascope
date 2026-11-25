@@ -61,6 +61,7 @@
       "properties": {
         "frame_prefix": {"type": "string", "default": "cam_"},
         "photonvision_calibrations": {"type": "string"},
+        "baseline": {"type": "string", "description": "YAML of hand-typed camera transforms (inches, degrees) to compare against in report.md"},
         "fallback": {
           "type": "object",
           "additionalProperties": false,

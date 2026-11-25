@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from cad2ascope.export import load_export
 from cad2ascope.grouping import Model, build_model
 from cad2ascope.meshes import glb_bytes, place_groups
 from cad2ascope.reduce import MeshStats, reduce_groups
+from cad2ascope.report import load_baseline
+from cad2ascope.report import render as render_report
 
 DEFAULT_OUT = "assets/advantagescope"
 
@@ -25,6 +28,8 @@ class BuildResult:
     frames: list[Frame]
     files: dict[str, int]  # file name -> bytes
     mesh: MeshStats | None = None
+    source_name: str = ""
+    source_sha256: str = ""
 
     @property
     def warnings(self) -> list[str]:
@@ -61,17 +66,29 @@ def build(
     folder = Path(out_root) / config.robot.folder
     if folder.exists() and not folder.is_dir():
         raise CadError(f"{folder} exists and is not a folder. Move it out of the way and run again.")
+    baseline = None
+    if config.cameras.baseline:
+        path = repo_root / config.cameras.baseline
+        if not path.is_file():
+            raise CadError(f"cameras.baseline points at {path}, which does not exist. Fix the path or remove the line.")
+        baseline = load_baseline(path)
     folder.mkdir(parents=True, exist_ok=True)
+    previous = None
+    if (folder / "manifest.json").is_file():
+        try:
+            previous = json.loads((folder / "manifest.json").read_text())
+        except ValueError:
+            previous = None
     # Remove only files this tool writes, so a stale model_5.glb cannot linger after a joint is removed.
-    for old in [*folder.glob("model*.glb"), folder / "config.json", folder / "manifest.json"]:
+    for old in [*folder.glob("model*.glb"), folder / "config.json", folder / "manifest.json", folder / "report.md"]:
         if old.is_file():
             old.unlink()
     for name, data in blobs.items():
         (folder / name).write_bytes(data)
     sizes = {name: len(data) for name, data in blobs.items()}
     write_json(folder / "config.json", config_json(model, cameras))
-    write_json(
-        folder / "manifest.json",
-        manifest_json(model, cameras, frames, reduced, sizes, export_path.name, sha, stats, onshape_source),
-    )
-    return BuildResult(folder, model, cameras, frames, sizes, stats)
+    manifest = manifest_json(model, cameras, frames, reduced, sizes, export_path.name, sha, stats, onshape_source)
+    write_json(folder / "manifest.json", manifest)
+    # Render from the JSON round trip, so the report reads exactly what the next run will read back.
+    (folder / "report.md").write_text(render_report(json.loads(json.dumps(manifest)), previous, baseline))
+    return BuildResult(folder, model, cameras, frames, sizes, stats, export_path.name, sha)

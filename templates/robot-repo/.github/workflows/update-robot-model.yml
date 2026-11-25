@@ -1,6 +1,14 @@
-# DRAFT for Phase 5. Copy into the robot repo at .github/workflows/update-robot-model.yml.
-# CLI flags below are the intended interface; adjust to match the real cad2ascope CLI.
-# Before use: pin every action to a full commit SHA and set CAD2ASCOPE_REF to a release tag.
+# Copy into the robot repo at .github/workflows/update-robot-model.yml (PLAN §8.1).
+# Repository settings it needs: secrets ONSHAPE_ACCESS_KEY and ONSHAPE_SECRET_KEY (read-only key), variable
+# ONSHAPE_BASE_URL (https://aaps.onshape.com), and "Allow GitHub Actions to create and approve pull requests"
+# (Settings > Actions > General > Workflow permissions).
+#
+# Two ways to run it:
+#   API route:  Actions > "Update robot model" > Run workflow. Opens or updates the pull request
+#               robot-model/update for review.
+#   Drop route: export a URDF zip from Onshape by hand, put it in cad/drops/ on a branch, and push (the GitHub web
+#               UI works). The result is committed back onto that branch, so its pull request picks it up.
+# Nothing merges automatically. Actions are pinned to full commit SHAs; the comment shows the release.
 
 name: Update robot model
 
@@ -8,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       onshape_version:
-        description: "Onshape Version name to export (blank = latest Version)"
+        description: "Onshape Version name to export (blank = robot.version in cad/advantagescope.yaml)"
         required: false
         default: ""
       use_workspace:
@@ -28,7 +36,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CAD2ASCOPE_REF: main            # replace with a release tag, e.g. v1.0.0
+  CAD2ASCOPE_REF: main # replace with a release tag, e.g. v1.0.0
   ONSHAPE_BASE_URL: ${{ vars.ONSHAPE_BASE_URL }}
 
 jobs:
@@ -36,67 +44,106 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
-          java-version: "17"      # match the robot project's sourceCompatibility
+          java-version: "17" # match the robot project's Java version
+
+      - name: Reuse earlier Onshape exports
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/cad2ascope
+          key: cad2ascope-${{ github.run_id }}
+          restore-keys: cad2ascope-
 
       - name: Install cad2ascope
         run: uv tool install "git+https://github.com/FRC1076/cad2ascope@${CAD2ASCOPE_REF}"
 
-      - name: Find a dropped zip (manual export route)
-        id: drop
+      - name: Decide where the result goes
+        id: target
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          zip=$(git diff --name-only --diff-filter=A "${{ github.event.before }}" "${{ github.sha }}" -- 'cad/drops/*.zip' 2>/dev/null | head -n 1 || true)
-          echo "zip=${zip}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = "push" ] && [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "branch=$REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "commit_back=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=robot-model/update" >> "$GITHUB_OUTPUT"
+            echo "commit_back=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Run pipeline
+      # Inputs reach the script only through environment variables, never pasted into it.
+      - name: Build the model, robot code and previews
+        id: ci
         env:
           ONSHAPE_ACCESS_KEY: ${{ secrets.ONSHAPE_ACCESS_KEY }}
           ONSHAPE_SECRET_KEY: ${{ secrets.ONSHAPE_SECRET_KEY }}
+          VERSION: ${{ inputs.onshape_version }}
+          WORKSPACE: ${{ inputs.use_workspace }}
+          LINK_BASE: ${{ github.server_url }}/${{ github.repository }}/blob/${{ steps.target.outputs.branch }}/cad/previews
         run: |
-          args=(run --config cad/advantagescope.yaml --report build/cad2ascope/report.md)
-          if [ -n "${{ steps.drop.outputs.zip }}" ]; then
-            args+=(--zip "${{ steps.drop.outputs.zip }}")
-          elif [ "${{ inputs.use_workspace }}" = "true" ]; then
-            args+=(--workspace)
-          elif [ -n "${{ inputs.onshape_version }}" ]; then
-            args+=(--version "${{ inputs.onshape_version }}")
-          fi
+          args=(ci --link-base "${LINK_BASE}")
+          if [ -n "${VERSION}" ]; then args+=(--version "${VERSION}"); fi
+          if [ "${WORKSPACE}" = "true" ]; then args+=(--workspace); fi
           cad2ascope "${args[@]}"
 
-      - name: Remove the dropped zip
-        if: steps.drop.outputs.zip != ''
-        run: git rm -q "${{ steps.drop.outputs.zip }}"
+      - name: Show the report on this run's summary page
+        env:
+          REPORT: ${{ steps.ci.outputs.report }}
+        run: cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Compile and test generated code
+      # A joint added or removed in CAD is supposed to break this until a programmer updates the subsystems
+      # (PLAN §9 P3), so a failure here still lets the pull request open, and the job fails at the end.
+      - name: Compile and test the generated code
+        id: gradle
+        continue-on-error: true
         run: ./gradlew test --no-daemon
 
-      # Manual-export route: commit results back onto the student's branch,
-      # so their open pull request picks up the new model.
-      - name: Commit to the drop branch
-        if: steps.drop.outputs.zip != ''
+      - name: Commit back to the drop branch
+        if: steps.target.outputs.commit_back == 'true'
+        env:
+          TITLE: ${{ steps.ci.outputs.title }}
         run: |
-          git config user.name "cad2ascope-bot"
-          git config user.email "cad2ascope-bot@users.noreply.github.com"
-          git add assets/advantagescope src/main/java/frc/robot/generated src/test/java/frc/robot/generated
-          git commit -m "Update robot model from dropped Onshape export" || echo "No changes"
-          git push
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A assets/advantagescope src/main/java src/test/java cad/previews cad/drops
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+          else
+            git commit -m "$TITLE" -m "Generated by cad2ascope. The full report is on the Actions run summary."
+            git push
+          fi
 
-      # API route: open or update a pull request for review. Never auto-merge.
-      - name: Open pull request
-        if: steps.drop.outputs.zip == ''
-        uses: peter-evans/create-pull-request@v7
+      - name: Open or update the pull request
+        if: steps.target.outputs.commit_back != 'true'
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
         with:
           branch: robot-model/update
-          title: "Update robot model from Onshape"
-          body-path: build/cad2ascope/report.md
+          delete-branch: true
+          title: ${{ steps.ci.outputs.title }}
+          body-path: ${{ steps.ci.outputs.report }}
+          commit-message: ${{ steps.ci.outputs.title }}
           add-paths: |
             assets/advantagescope/**
-            src/main/java/frc/robot/generated/**
-            src/test/java/frc/robot/generated/**
-          commit-message: "Update robot model from Onshape"
+            src/main/java/**
+            src/test/java/**
+            cad/previews/**
+            cad/drops/**
+
+      - name: Fail if the generated code did not compile or pass its tests
+        if: steps.gradle.outcome == 'failure'
+        env:
+          BREAKING: ${{ steps.ci.outputs.breaking }}
+        run: |
+          if [ "$BREAKING" = "true" ]; then
+            echo "::error::A joint was added or removed in CAD. Update the subsystems' visualizer.set calls on this branch (PLAN §9 P3)."
+          else
+            echo "::error::./gradlew test failed on the generated robot model. See the Gradle step above."
+          fi
+          exit 1

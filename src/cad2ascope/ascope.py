@@ -7,6 +7,7 @@ anything visible and well inside the 1e-6 m tolerance in PLAN §10.1.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 from cad2ascope import __version__
@@ -104,6 +105,12 @@ def manifest_json(
                 "signal": c.config.signal,
                 "ratio": c.config.ratio,
                 "direction": c.config.direction,
+                # in signal units: meters for sliders, radians for revolutes (config gives degrees)
+                "zero_offset": (
+                    float(c.config.zero_offset_m or 0.0)
+                    if c.joint.type == "prismatic"
+                    else math.radians(c.config.zero_offset_deg or 0.0)
+                ),
                 "parent_component": c.parent,
                 "axis": [_num(v) for v in c.joint.axis],
                 "limits": [c.joint.lower, c.joint.upper] if c.joint.type != "continuous" else None,

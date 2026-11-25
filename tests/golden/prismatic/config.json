@@ -1,0 +1,35 @@
+{
+  "name": "prismatic",
+  "isFTC": false,
+  "disableSimplification": false,
+  "rotations": [],
+  "position": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "cameras": [],
+  "components": [
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 0.0
+        },
+        {
+          "axis": "y",
+          "degrees": 0.0
+        },
+        {
+          "axis": "z",
+          "degrees": 90.0
+        }
+      ],
+      "zeroedPosition": [
+        0.15,
+        -0.02,
+        -0.3
+      ]
+    }
+  ]
+}

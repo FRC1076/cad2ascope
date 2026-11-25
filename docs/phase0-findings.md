@@ -127,7 +127,20 @@ One thing the checklist leaves out: **A5, A6 and A7 require editing the copy** (
 
 ### A4: mates inside subassemblies are exported
 
-Yes. The 2026 top level has 9 mate features (Fastened and Planar) but the URDF has 1,244 joints, including the hood's `revolute_1` with its −20° to 0° limits. Mates inside the subassemblies come through. Not yet checked: whether a *rigid* (non-flexible) subassembly's internal mates are exported, and why the 2025 export has **no Slider joints at all** (its 105 prismatic joints all come from Planar, Cylindrical and Parallel mates). Either the 2025 elevator has no Slider mates, or its subassembly is rigid in the main assembly. Bill to check.
+Yes. The 2026 top level has 9 mate features (Fastened and Planar) but the URDF has 1,244 joints, including the hood's `revolute_1` with its −20° to 0° limits. Mates inside the subassemblies come through. Not yet checked: whether a *rigid* (non-flexible) subassembly's internal mates are exported.
+
+**The 2025 elevator ("Three Stage w Grabber Pivot") is mated with Planar mates, not Sliders.** That is why the 2025 export has no Slider joints (its 105 prismatic joints all come from Planar, Cylindrical and Parallel mates). Its mates are exported, just not in a form cad2ascope can animate. Traced by part names in the export, since subassembly names do not appear in the URDF:
+
+| Mate (export name) | Moves | Parts riding on it | Likely role |
+| --- | --- | --- | --- |
+| `planar_4_3` | frame tube → `tube_2_x2_x28__1` | 608 | the whole superstructure placed on the drivetrain |
+| `planar_5` | cascade pulley block `wcp_0583_023` → `wcp_0583_025` | 519 | elevator mounting |
+| `planar_6` | → WCP extrusion `wcp_ex_0020_004` | 517 | stage 1 |
+| `planar_4` | → `wcp_ex_0020_007_1` | 499 | stage 2 |
+| `planar_8` | (on stage 2) | carries the pivot | stage 3 / carriage |
+| `revolute_6` | `part_21` → `tube_2_x1_x5__1` | 200 | grabber pivot; a Revolute with no limits, so it exports as `continuous` |
+
+The roles are inferred from the tree and part counts, so the Design leads should confirm them. To make the 2025 pilot work, the stage mates become Slider mates (named for example `j_elevator_stage1`, `j_elevator_stage2`, `j_elevator_stage3`) and the pivot becomes `j_grabber_pivot`, all with limits. The other Planar mates can stay, since cad2ascope freezes them where they were exported.
 
 ### A5 (partial): joint names come from mate names
 
@@ -168,5 +181,5 @@ Recommendation: keep the option **off** for cad2ascope. Revisit after A6 if conn
 2. ~~A copy of the 2026 Rebuilt main assembly~~ Done: copies of both robots exist, and their URLs are in `private/`. Share them with the key owner's account when the key exists.
 3. **Edits on that copy for A5 to A7** (after the first export): rename one moving mate to `j_test`; add mate connectors `ascope_origin` (drivetrain, center of frame perimeter, floor plane, +X forward, +Z up) and `cam_TEST` (on any camera); add a linear relation between two sliders if none exists. Then create a new Version.
 4. ~~A copy of the 2025 Reefscape main assembly~~ Done.
-6. **Check the 2025 elevator:** does it have Slider mates, and is its subassembly flexible in the main assembly? The export has no Slider joints.
+6. ~~Check the 2025 elevator~~ Answered: its stages use Planar mates (A4).
 5. Optional: a manual URDF export zip of the 2026 copy, downloaded from the Onshape UI with glTF meshes, for comparison with the API export.

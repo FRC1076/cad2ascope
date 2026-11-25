@@ -191,3 +191,33 @@ def test_coupled_chain_parents(built):
         ("j_elevator_carriage", 0),
         ("j_wrist", 1),
     ]
+
+
+def test_rotated_visual_origin_is_applied(tmp_path):
+    """Real Onshape exports rotate and offset some meshes inside their link (findings A3); the fixtures do not."""
+    import math
+
+    export = tmp_path / "export"
+    (export / "meshes").mkdir(parents=True)
+    box = trimesh.creation.box(extents=(0.02, 0.02, 0.02))
+    box.apply_translation((0.1, 0.0, 0.0))  # off-center in its own mesh frame, so rotation moves it
+    box.export(export / "meshes" / "part.glb")
+    (export / "robot.urdf").write_text(
+        f"""<robot name="r">
+  <link name="base"/><link name="ascope_origin"/>
+  <link name="arm"><visual><origin xyz="0 0.2 0" rpy="0 0 {math.pi / 2!r}"/>
+    <geometry><mesh filename="meshes/part.glb"/></geometry></visual></link>
+  <joint name="o" type="fixed"><parent link="base"/><child link="ascope_origin"/></joint>
+  <joint name="j_arm" type="revolute"><parent link="base"/><child link="arm"/><origin xyz="0 0 0.5"/>
+    <axis xyz="0 1 0"/><limit lower="-1" upper="1" effort="1" velocity="1"/></joint>
+</robot>"""
+    )
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text(
+        'robot: {name: "r", folder: Robot_r, origin_frame: ascope_origin}\n'
+        "signals: {arm: {units: rad}}\njoints: {j_arm: {signal: arm}}\n"
+    )
+    result = build(export, cfg, tmp_path / "out", repo_root=tmp_path)
+    geom = next(iter(trimesh.load(result.folder / "model_0.glb", force="scene").geometry.values()))
+    # yaw 90° takes the mesh's +X offset to +Y: 0.5 m up, 0.2 + 0.1 m to the left.
+    np.testing.assert_allclose(geom.bounds.mean(axis=0), [0.0, 0.3, 0.5], atol=1e-9)

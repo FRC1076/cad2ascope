@@ -96,7 +96,7 @@ On a team Windows laptop (not a district MacBook), point AdvantageScope's custom
 
 ## 11. Have a new student follow P2 and P4 without help
 
-A student who did not help build the tool runs "Update the model" and "View the robot in AdvantageScope" from the printed procedures (PLAN §10.3 item 6). This waits for Phase 6, which writes those procedures and lab sheets.
+A student who did not help build the tool runs "Update the model" and "View the robot in AdvantageScope" from the printed [lab sheets](../templates/robot-repo/docs/robot-model/lab-sheets.html) (PLAN §10.3 item 6), after the sheets are copied into the robot repo. Note anything they get stuck on and fix the procedure.
 
 ## 12. Software lead: open decisions
 

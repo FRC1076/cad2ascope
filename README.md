@@ -1,52 +1,70 @@
-# cad2ascope handoff package
+# cad2ascope
 
-Starting materials for building `cad2ascope`, the Onshape to AdvantageScope pipeline for FRC Team 1076 Pi Hi Samurai. Prepared 2026-11-25 from the implementation plan doc.
+Turn an Onshape robot assembly into an [AdvantageScope](https://github.com/Mechanical-Advantage/AdvantageScope) 3D robot model whose mechanisms move, plus generated WPILib Java that computes the component poses and camera transforms. Built by FRC Team 1076 Pi Hi Samurai; BSD 3-Clause, free for any team to use.
 
-## How to start
+What it replaces is the manual workflow on the [AdvantageScope custom assets page](https://docs.advantagescope.org/more-features/custom-assets/): exporting each mechanism separately, converting files, and tuning `zeroedRotations` and `zeroedPosition` by trial and error. cad2ascope reads every number from the CAD instead.
 
-1. Install Claude Code on the Mac: `curl -fsSL https://claude.ai/install.sh | bash`, then open a new terminal.
-2. Run the standalone copy of `setup-mac.sh` (it is also in this zip under `scripts/`): `bash setup-mac.sh`. It installs uv, Python 3.12, and the GitHub CLI without prompts, checks everything else, and lists what still needs a person (Xcode tools, WPILib 2026 with AdvantageScope, `gh auth login`). Repo checks show SKIP until the repo exists. Re-run until every other line says OK.
-3. Bill, in Terminal (not through Claude Code): `bash setup-mac.sh --store-keys` to put the read-only Onshape key pair in the macOS Keychain.
-4. Create the public GitHub repo `FRC1076/cad2ascope` (empty, no README), clone it, and unzip this package into the clone, so `CLAUDE.md` sits at the repo root.
-5. From the repo root, run `scripts/setup-mac.sh --check` once more. The repo lines must say OK: `private/` is gitignored and untracked. `private/TEAM-CONTEXT.md` holds the team's Onshape document links and must never be pushed to the public repo.
-6. In the terminal where you will work: `source scripts/onshape-env.sh`, then `claude` from the repo root, and paste the prompt from `prompts/KICKOFF.md`.
-7. Before section A of Phase 0, Bill shares a copy of the 2026 robot document with the key owner's account.
+## What you get
 
-## What's here
+From one Onshape URDF export and a short `cad/advantagescope.yaml`:
 
-| Path | What it is | Goes in the public repo? |
-| --- | --- | --- |
-| `CLAUDE.md` | Standing instructions for Claude Code: rules, layout, conventions, definition of done | Yes |
-| `README.md` | This file. Replace it with a user-facing README in Phase 6 | Yes, rewritten later |
-| `docs/PLAN.md` | Full implementation plan, snapshot of the living plan doc | Yes |
-| `docs/DECISIONS.md` | Decided and open decisions with owners | Yes |
-| `docs/PHASE0-CHECKLIST.md` | The verification spike, question by question | Yes |
-| `private/TEAM-CONTEXT.md` | Team facts: Onshape links, robot code details, camera baseline values | **No** (gitignored) |
-| `spec/advantagescope.example.yaml` | Example team config file for a robot repo | Yes |
-| `spec/advantagescope.schema.json` | JSON Schema for that config (the example validates against it) | Yes |
-| `spec/ADVANTAGESCOPE-FORMAT.md` | Summary of AdvantageScope's robot asset format, with open points for Phase 0 | Yes |
-| `templates/robot-repo/` | Files that go into each robot repo: the GitHub Actions workflow (Phase 5, runs `cad2ascope ci`) and the `updateRobotModel` Gradle task. (`RobotVisualizer.java` moved into the package in Phase 3; `cad2ascope codegen` writes it.) | Yes, as templates |
-| `tests/fixtures/` | Seven synthetic URDF robots (zip and unpacked), each with a team config and either `expected.json` (an independent oracle) or `expected_error.txt`, plus `make_fixtures.py` to regenerate them | Yes |
-| `prompts/KICKOFF.md` | The first prompt for Claude Code | Yes |
-| `scripts/setup-mac.sh` | Mac setup and check script; `--store-keys` mode for Bill only | Yes |
-| `scripts/onshape-env.sh` | Loads the Onshape keys from the Keychain into one terminal | Yes |
-| `LICENSE` | BSD 3-Clause, copyright Pioneer Robotics: PiHi Samurai, FRC Team 1076, same text as the 2026 robot code | Yes |
-| `.gitignore` | Keeps `private/`, caches, and secrets out of git | Yes |
+- `assets/advantagescope/Robot_<name>/`: `model.glb`, `model_0.glb` and on, and `config.json`. Every component lines up exactly at zero; meshes are reduced to fit a triangle budget (the 1076 pilots: about 300,000 triangles, 13 to 15 MB).
+- `RobotModel.java`: a `Signal` enum, `componentPoses(double[] signals)` that chains nested mechanisms (a hood on a turret), and `Cameras` / `Frames` transforms for PhotonVision, all from CAD. It depends only on WPILib geometry, not on a logging library.
+- `RobotModelTest.java`, so `./gradlew test` catches a stale or broken model.
+- `RobotVisualizer.java` and `SweepRobotModel.java` once, for your team to own.
+- `report.md` (camera movement, warnings, sizes) and preview PNGs, ready to be a pull request body.
 
-## Fixtures at a glance
+## Quick start
 
-| Fixture | Tests |
+Needs [uv](https://docs.astral.sh/uv/) (no admin rights). Run from the robot repo's root.
+
+1. Prepare the assembly in Onshape. The rules are short: one Revolute or Slider mate per moving mechanism named `j_…` with limits, a mate connector `ascope_origin` on the drivetrain, `cam_<NAME>` connectors at camera lenses. See [P1 Season setup](templates/robot-repo/docs/robot-model/P1-season-setup.md).
+2. Export it: right-click the assembly tab, Export, URDF with GLTF meshes.
+3. Look at what was exported, and write a starter config:
+   ```
+   uvx --from git+https://github.com/FRC1076/cad2ascope cad2ascope inspect export.zip
+   uvx --from git+https://github.com/FRC1076/cad2ascope cad2ascope init export.zip --name "1234 2027"
+   ```
+4. Edit `cad/advantagescope.yaml` (signal names, ratios, directions), then build everything:
+   ```
+   uvx --from git+https://github.com/FRC1076/cad2ascope cad2ascope run --zip export.zip
+   ```
+5. In AdvantageScope, choose App > Use Custom Assets Folder and pick `assets/advantagescope`.
+
+With an Onshape API key (read-only is enough), `cad2ascope run` exports the latest Version itself, cached by Version. In GitHub Actions, the [workflow template](templates/robot-repo/.github/workflows/update-robot-model.yml) turns an update into one click that opens a pull request, or accepts a hand-exported zip dropped into `cad/drops/` with no key at all.
+
+## Commands
+
+| Command | What it does |
 | --- | --- |
-| `single_revolute` | One arm on a revolute joint, origin frame deliberately offset and rotated |
-| `prismatic` | One slider |
-| `nested_chain` | Turret, hood on turret, a camera on each, a measured frame (like 2026) |
-| `coupled` | Two-stage cascade with a mimic relation and a wrist on the carriage (like 2025) |
-| `frozen` | An unlisted movable joint that must merge into the base |
-| `invalid_two_parents` | A closed linkage; must fail and name the link |
-| `missing_origin` | No `ascope_origin`; must fail with a fix-it message |
+| `inspect <zip>` | Print the joints, limits and parts in an export, plus notes on grounded or unmated parts and cut loops |
+| `init <zip>` | Write a starter `cad/advantagescope.yaml` |
+| `build <zip>` | Build the AdvantageScope folder, `manifest.json` and `report.md` |
+| `codegen <zip>` | Write `RobotModel.java` and its test |
+| `fetch` | Export through the Onshape API (keys from `ONSHAPE_ACCESS_KEY` / `ONSHAPE_SECRET_KEY`) |
+| `run` | `fetch` (or `--zip`), then `build` and `codegen` |
+| `render <folder>` | Preview PNGs and the zero-pose check |
+| `ci` | Everything the GitHub Actions workflow runs |
 
-One assumption is baked into the fixtures: Onshape mate connectors arrive as dummy links on fixed joints. Phase 0 checks this against a real export, and the generator gets updated if it is wrong.
+`cad2ascope <command> --help` lists the options. Errors exit 1 and say what to change in Onshape or in the config; warnings exit 0.
 
-## Keeping the plan in sync
+## Documentation
 
-The living plan is the Claude Doc "Onshape to AdvantageScope Pipeline: Implementation Plan". `docs/PLAN.md` is a snapshot of it. When Claude Code changes the plan in a pull request, carry the change back to the doc, or retire the doc and treat `docs/PLAN.md` as the source from then on. [CONFIRM which]
+- [Student procedures](templates/robot-repo/docs/robot-model/README.md) (P1 to P5) and [printable lab sheets](templates/robot-repo/docs/robot-model/lab-sheets.html), meant to be copied into a robot repo's `docs/`.
+- [Implementation plan](docs/PLAN.md) and [decisions](docs/DECISIONS.md).
+- How it was verified: [Phase 0 findings](docs/phase0-findings.md) (Onshape export format, AdvantageScope's math, read from its source), [mesh reduction](docs/phase2-results.md), [API fetch](docs/phase4-notes.md), [generated code](docs/phase3-notes.md), [CI](docs/phase5-notes.md).
+- [Items that still need a person](docs/HUMAN-CHECKLIST.md).
+
+## Status
+
+Phases 0 to 5 of the [plan](docs/PLAN.md) are built and tested against synthetic robots and against real exports of 1076's 2025 and 2026 robots. The pilot runs on those robots (Phase 7) are next. Until the first release tag, `main` may change; pin a commit or tag in robot repos.
+
+## Development
+
+```
+uv sync
+uv run pytest        # also compiles and runs the generated Java if WPILib is installed
+uv run ruff check . && uv run ruff format --check .
+```
+
+See [CLAUDE.md](CLAUDE.md) for how the code is laid out and the rules it follows.

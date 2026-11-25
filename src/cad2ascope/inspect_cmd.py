@@ -10,7 +10,7 @@ import yaml
 
 from cad2ascope.config import CONFIG_NAME, parse_config
 from cad2ascope.errors import CadError
-from cad2ascope.export import load_export
+from cad2ascope.export import load_export, onshape_notes
 from cad2ascope.urdf import Joint, Robot
 
 
@@ -61,6 +61,9 @@ def describe(
         lines.append(f"  {j.name:<32} {j.onshape_kind:<10} {_limits(j)}")
     parts = sum(len(link.visuals) for link in robot.links.values())
     lines.append(f"Mesh files referenced: {parts}")
+    notes = onshape_notes(robot, origin_frame)
+    if notes:
+        lines += ["", "Notes:"] + [f"  - {n}" for n in notes]
     if origin_frame not in robot.links:
         lines.append(f"\nMissing: no {origin_frame!r} frame. Add that mate connector on the drivetrain (PLAN §4 C2).")
     return "\n".join(lines)

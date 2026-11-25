@@ -258,3 +258,96 @@ def test_fallback_fov_means_true_horizontal(tmp_path):
     cam = result.cameras[0]
     assert cam.hfov_deg == pytest.approx(70.0)
     assert cam.fov_deg > 70.0  # written wider, because AdvantageScope divides it by the aspect ratio
+
+
+# ------------------------------------------------------------------------------------------------- Onshape export shape
+# Mirrors what the real 2025 and 2026 manual exports contain (docs/phase0-findings.md, section A).
+
+ONSHAPE_LIKE = """<robot name="pkg_bot">
+  <link name="root"><visual><geometry><mesh filename="package://pkg_bot/meshes/a.gltf"/></geometry></visual></link>
+  <link name="drivetrain"><visual><geometry><mesh filename="package://pkg_bot/meshes/a.gltf"/></geometry></visual></link>
+  <link name="ascope_origin"/>
+  <link name="turret_plate"><visual><geometry><mesh filename="package://pkg_bot/meshes/a.gltf"/></geometry></visual></link>
+  <link name="hood"><visual><geometry><mesh filename="package://pkg_bot/meshes/a.gltf"/></geometry></visual></link>
+  <link name="loose_roller"><visual><geometry><mesh filename="package://pkg_bot/meshes/a.gltf"/></geometry></visual></link>
+  <link name="j_turret_1"/><link name="j_turret"/>
+  <link name="turret"><visual><geometry><mesh filename="package://pkg_bot/meshes/a.gltf"/></geometry></visual></link>
+  <link name="bar_loop_closure"/>
+  <joint name="fastened_1" type="fixed"><parent link="root"/><child link="drivetrain"/></joint>
+  <joint name="ascope_origin" type="fixed"><parent link="drivetrain"/><child link="ascope_origin"/></joint>
+  <joint name="fixed_node_to_root_joint" type="fixed"><parent link="root"/><child link="turret_plate"/></joint>
+  <joint name="j_hood" type="revolute"><parent link="turret_plate"/><child link="hood"/><axis xyz="0 1 0"/>
+    <limit lower="-0.3" upper="0.1" effort="1" velocity="1"/></joint>
+  <joint name="hanging_node_to_root_joint" type="fixed"><parent link="root"/><child link="loose_roller"/></joint>
+  <joint name="j_turret" type="prismatic"><parent link="drivetrain"/><child link="j_turret_1"/><axis xyz="1 0 0"/>
+    <limit lower="-10000" upper="10000" effort="1" velocity="1"/></joint>
+  <joint name="j_turret_1" type="prismatic"><parent link="j_turret_1"/><child link="j_turret"/><axis xyz="0 1 0"/>
+    <limit lower="-10000" upper="10000" effort="1" velocity="1"/></joint>
+  <joint name="j_turret_2" type="continuous"><parent link="j_turret"/><child link="turret"/><axis xyz="0 0 1"/></joint>
+  <joint name="bar_loop_closure" type="continuous"><parent link="turret"/><child link="bar_loop_closure"/></joint>
+</robot>"""
+
+
+def _onshape_config(joints: dict) -> object:
+    return parse_config(
+        {
+            "robot": {"name": "t", "folder": "Robot_t", "origin_frame": "ascope_origin"},
+            "signals": {"hood": {"units": "rad"}, "turret": {"units": "rad"}},
+            "joints": joints,
+        }
+    )
+
+
+def test_onshape_root_attachments_and_loop_cuts_are_reported():
+    from cad2ascope.grouping import build_model
+
+    model = build_model(parse_urdf(ONSHAPE_LIKE), _onshape_config({"j_hood": {"signal": "hood"}}))
+    text = "\n".join(model.warnings)
+    assert "'turret_plate' is grounded (Fixed) in Onshape" in text
+    assert "1 part(s) are not mated to anything ('loose_roller')" in text
+    assert "Onshape cut 1 closed loop(s)" in text
+    assert model.components[0].parent is None  # the hood hangs off the grounded plate, i.e. the base
+
+
+def test_grounded_drivetrain_is_not_reported():
+    from cad2ascope.grouping import build_model
+
+    # Swap roles: the drivetrain is the grounded instance and the turret plate is fastened to the root.
+    urdf = ONSHAPE_LIKE.replace('"fastened_1"', '"TMP"').replace('"fixed_node_to_root_joint"', '"fastened_1"')
+    urdf = urdf.replace('"TMP"', '"fixed_node_to_root_joint"')
+    model = build_model(parse_urdf(urdf), _onshape_config({"j_hood": {"signal": "hood"}}))
+    assert not any("grounded" in w for w in model.warnings)
+
+
+def test_planar_mate_chain_cannot_be_listed():
+    from cad2ascope.grouping import build_model
+
+    for name in ("j_turret", "j_turret_2"):
+        with pytest.raises(CadError, match=f"{name} comes from a mate that Onshape exports as several joints"):
+            build_model(parse_urdf(ONSHAPE_LIKE), _onshape_config({name: {"signal": "turret"}}))
+
+
+def test_many_frozen_joints_are_summarized():
+    from cad2ascope.grouping import build_model
+
+    extra = "".join(
+        f'<link name="w{i}"/><joint name="revolute_{i}" type="continuous"><parent link="drivetrain"/><child link="w{i}"/></joint>'
+        for i in range(8)
+    )
+    model = build_model(parse_urdf(ONSHAPE_LIKE.replace("</robot>", extra + "</robot>")), _onshape_config({}))
+    summary = [w for w in model.warnings if "joints can move in Onshape but are frozen" in w]
+    assert len(summary) == 1 and summary[0].startswith("9 joints can move")  # 8 rollers + the loop cut
+    # unlisted j_ joints are still named one by one, because they are probably a forgotten config entry
+    assert any(w.startswith("Mate j_hood can move in Onshape but is not listed") for w in model.warnings)
+
+
+def test_ros_package_layout_resolves(tmp_path):
+    pkg = tmp_path / "export" / "pkg_bot"
+    (pkg / "urdf").mkdir(parents=True)
+    (pkg / "meshes").mkdir()
+    (pkg / "urdf" / "pkg_bot.urdf").write_text(ONSHAPE_LIKE)
+    (pkg / "meshes" / "a.gltf").write_text("{}")
+    (tmp_path / "export" / "decoy").mkdir()
+    (tmp_path / "export" / "decoy" / "a.gltf").write_text("{}")  # same name elsewhere: must not be picked
+    with load_export(tmp_path / "export") as export:
+        assert export.resolve_mesh("package://pkg_bot/meshes/a.gltf") == (pkg / "meshes" / "a.gltf").resolve()

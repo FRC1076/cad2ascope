@@ -1,13 +1,18 @@
 """Read an Onshape URDF export (zip or folder) into a Robot plus a way to find its mesh files.
 
-EVERY ASSUMPTION ABOUT ONSHAPE'S EXPORT FORMAT LIVES IN THIS FILE. Phase 0 section A has not run yet, so these are
-unverified and are the first thing to update when real exports arrive (docs/phase0-findings.md, A3 and A6):
+EVERY ASSUMPTION ABOUT ONSHAPE'S EXPORT FORMAT LIVES IN THIS FILE (docs/phase0-findings.md, section A).
 
-1. The zip holds exactly one ``.urdf`` file, somewhere in it.
-2. Mesh ``filename`` values are paths relative to the URDF's folder, possibly written as ``package://<name>/...``
-   (ROS style). If neither resolves, a file with the same name anywhere in the export is used.
-3. Mate connectors arrive as links with no visuals, attached by a fixed joint, and the link carries the connector's
-   name (onshape-to-robot style). ``ascope_origin``, ``cam_<NAME>`` and ``frame_<name>`` are found by link name.
+Confirmed on manual UI exports of the 2025 and 2026 robots (Onshape 1.224, 2026-11-25):
+
+1. The zip is a ROS package: ``<pkg>/urdf/<pkg>.urdf``, ``<pkg>/meshes/*.gltf`` (base64-embedded buffers, meters,
+   materials with baseColorFactor), and ``<pkg>/launch/``. There is exactly one ``.urdf``.
+2. Mesh ``filename`` values are ``package://<pkg>/meshes/<file>.gltf``, resolved from the ``<pkg>`` folder.
+3. Onshape adds joints to a link named ``root`` (which is just the first instance, e.g. a game piece):
+   ``fixed_node_to_root_joint`` for the grounded (Fixed) instance, ``hanging_node_to_root_joint[_N]`` for instances
+   with no mates. It cuts closed loops itself and names the cut joints and helper links ``*_loop_closure*``.
+
+Still unverified (A6): mate connectors arriving as links with no visuals, attached by a fixed joint, named after
+the connector (onshape-to-robot style). ``ascope_origin``, ``cam_<NAME>`` and ``frame_<name>`` are found by link name.
 """
 
 from __future__ import annotations
@@ -22,6 +27,10 @@ from pathlib import Path, PurePosixPath
 from cad2ascope.errors import CadError
 from cad2ascope.urdf import Robot, parse_urdf
 
+GROUNDED_JOINT = "fixed_node_to_root_joint"
+HANGING_JOINT = "hanging_node_to_root_joint"
+LOOP_CLOSURE = "loop_closure"
+
 
 @dataclass
 class Export:
@@ -32,6 +41,18 @@ class Export:
     source: Path
     sha256: str
     _tmp: Path | None = None
+    _index: dict[str, list[Path]] | None = None
+
+    def _search_root(self) -> Path:
+        return (self._tmp or (self.source if self.source.is_dir() else self.urdf_path.parent)).resolve()
+
+    def _by_name(self, name: str) -> list[Path]:
+        if self._index is None:
+            self._index = {}
+            for q in sorted(self._search_root().rglob("*")):
+                if q.is_file():
+                    self._index.setdefault(q.name, []).append(q)
+        return self._index.get(name, [])
 
     def resolve_mesh(self, filename: str) -> Path:
         """Find the file a URDF mesh ``filename`` points to. Raises CadError if it is missing."""
@@ -39,22 +60,24 @@ class Export:
         rel = filename
         if rel.startswith("file://"):
             rel = rel[len("file://") :]
+        root = self._search_root()
+        tries: list[Path] = []
         if rel.startswith("package://"):
             rel = rel[len("package://") :]
-            # Drop the package name, then try the remainder from the URDF folder.
             parts = PurePosixPath(rel).parts
-            candidates = [PurePosixPath(*parts[1:]) if len(parts) > 1 else PurePosixPath(rel), PurePosixPath(rel)]
+            pkg, rest = parts[0], PurePosixPath(*parts[1:]) if len(parts) > 1 else PurePosixPath(rel)
+            # ROS layout: the package folder is an ancestor of the URDF (Onshape: <pkg>/urdf/<pkg>.urdf).
+            tries += [anc / rest for anc in [base, *base.parents] if anc.name == pkg]
+            tries += [base / rest, base / rel]
         else:
-            candidates = [PurePosixPath(rel)]
-        root = (self._tmp or (self.source if self.source.is_dir() else base)).resolve()
-        for cand in candidates:
-            if cand.is_absolute() or ".." in cand.parts:
-                continue
-            p = (base / cand).resolve()
+            tries.append(base / rel)
+        for p in tries:
+            if ".." in PurePosixPath(rel).parts:
+                break
+            p = p.resolve()
             if p.is_file() and p.is_relative_to(root):
                 return p
-        name = PurePosixPath(rel).name
-        matches = sorted(q for q in root.rglob(name) if q.is_file())
+        matches = self._by_name(PurePosixPath(rel).name)
         if len(matches) == 1:
             return matches[0]
         raise CadError(
@@ -143,3 +166,43 @@ def frame_links(robot: Robot, prefix: str) -> list[str]:
     """Names of links that are mate-connector frames with this prefix, in tree order (assumption 3 above)."""
     order = [robot.root] + [j.child for j in robot.walk()]
     return [name for name in order if name.startswith(prefix)]
+
+
+def onshape_notes(robot: Robot, origin_frame: str) -> list[str]:
+    """Warnings about what Onshape's exporter did to the assembly's structure (assumption 3 above)."""
+    notes = []
+    root_kids = robot.child_joints.get(robot.root, [])
+    for j in root_kids:
+        if j.name != GROUNDED_JOINT:
+            continue
+        if origin_frame not in robot.links:
+            # Without the origin we cannot tell whether the grounded part is on the drivetrain, so just name it.
+            notes.append(
+                f"Part {j.child!r} is the grounded (Fixed) part in Onshape. Only the drivetrain should be Fixed in the "
+                "AdvantageScope export configuration; if this part is not on the drivetrain, unfix it and mate it."
+            )
+        elif origin_frame not in robot.subtree_links(j.child):
+            notes.append(
+                f"Part {j.child!r} is grounded (Fixed) in Onshape, so the export bolts it to the robot base and ignores "
+                "its mates. Anything mounted on it will not move with a mechanism. In the AdvantageScope export "
+                "configuration, only the drivetrain should be Fixed; unfix this part and mate it instead."
+            )
+    hanging = [j.child for j in root_kids if j.name.startswith(HANGING_JOINT)]
+    if hanging:
+        shown = ", ".join(repr(h) for h in hanging[:5]) + (" ..." if len(hanging) > 5 else "")
+        notes.append(
+            f"{len(hanging)} part(s) are not mated to anything ({shown}), so they stay where they were exported, "
+            "attached to the robot base. Mate them in Onshape (Fastened is fine) or suppress them."
+        )
+    cuts = [
+        name
+        for name in robot.links
+        if LOOP_CLOSURE in name and not robot.child_joints.get(name) and name not in (robot.root,)
+    ]
+    if cuts:
+        notes.append(
+            f"Onshape cut {len(cuts)} closed loop(s) of mates to export a tree (joints named *_loop_closure). Parts held "
+            "together only through a cut will not move together. If a mechanism comes apart when it moves, fasten "
+            "all but one joint of its loop in the export configuration (PLAN §4 C4)."
+        )
+    return notes

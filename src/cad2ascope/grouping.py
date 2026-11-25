@@ -18,6 +18,7 @@ import numpy as np
 
 from cad2ascope.config import Config, JointConfig
 from cad2ascope.errors import CadError, Warnings
+from cad2ascope.export import onshape_notes
 from cad2ascope.transforms import invert
 from cad2ascope.urdf import Joint, Robot
 
@@ -67,6 +68,19 @@ def _suggest(name: str, options: list[str]) -> str:
     return f" Did you mean {close[0]!r}?" if close else ""
 
 
+def _is_helper(link: str, robot: Robot) -> bool:
+    """An invisible link Onshape inserts between the joints of a Planar, Cylindrical, Parallel or Ball mate."""
+    if robot.links[link].visuals:
+        return False
+    up = robot.parent_joint.get(link)
+    down = robot.child_joints.get(link, [])
+    return up is not None and up.movable and any(j.movable for j in down)
+
+
+def _in_multi_joint_mate(joint: Joint, robot: Robot) -> bool:
+    return _is_helper(joint.child, robot) or _is_helper(joint.parent, robot)
+
+
 def _check_listed_joint(name: str, jc: JointConfig, joint: Joint | None, robot: Robot, cfg: Config) -> list[str]:
     src = cfg.source
     if joint is None:
@@ -79,6 +93,12 @@ def _check_listed_joint(name: str, jc: JointConfig, joint: Joint | None, robot: 
     if joint.type in ("fixed", "floating", "planar"):
         problems.append(
             f"{name} is a {joint.onshape_kind} mate. Change it to Revolute or Slider in Onshape, or remove it from {src}."
+        )
+        return problems
+    if _in_multi_joint_mate(joint, robot):
+        problems.append(
+            f"{name} comes from a mate that Onshape exports as several joints (Planar, Cylindrical, Parallel, or "
+            "Ball), so it cannot be animated reliably. Change it to a Revolute or Slider mate in Onshape (PLAN §4 C3)."
         )
         return problems
     units = cfg.signals[jc.signal]
@@ -116,6 +136,8 @@ def build_model(robot: Robot, cfg: Config) -> Model:
         )
 
     world = robot.world_poses()
+    for note in onshape_notes(robot, origin):
+        warnings.add(note)
     robot_from_world = invert(world[origin])
 
     articulated = set(cfg.joints)
@@ -146,17 +168,26 @@ def build_model(robot: Robot, cfg: Config) -> Model:
             "Move the mate connector to the drivetrain, which never moves relative to the robot (PLAN §4 C2)."
         )
 
-    for j in frozen:
-        if j.name.startswith("j_"):
-            warnings.add(
-                f"Mate {j.name} can move in Onshape but is not listed under joints in {cfg.source}, so it is frozen "
-                "where it was exported. Add it under joints to make it move."
-            )
-        else:
+    unlisted_j = [j for j in frozen if j.name.startswith("j_")]
+    others = [j for j in frozen if not j.name.startswith("j_")]
+    for j in unlisted_j:  # probably forgotten, so name each one
+        warnings.add(
+            f"Mate {j.name} can move in Onshape but is not listed under joints in {cfg.source}, so it is frozen "
+            "where it was exported. Add it under joints to make it move."
+        )
+    if 0 < len(others) <= 5:
+        for j in others:
             warnings.add(
                 f"Mate {j.name!r} ({j.onshape_kind}) can move in Onshape but is not a j_ mate, so it is frozen where it "
                 "was exported. To make it move, rename it with a j_ prefix and add it under joints."
             )
+    elif others:
+        shown = ", ".join(j.name for j in others[:4])
+        warnings.add(
+            f"{len(others)} joints can move in Onshape but are frozen where they were exported, because they are not "
+            f"j_ mates (for example {shown}). That is expected for mates you do not animate. "
+            "The full list is in manifest.json under frozen_joints."
+        )
 
     for comp in components:
         j = comp.joint
@@ -206,10 +237,12 @@ def build_model(robot: Robot, cfg: Config) -> Model:
     if not components:
         warnings.add(f"No joints are listed in {cfg.source}, so the whole robot is one solid model.")
 
-    for name in robot.links:
-        if DEFAULT_PART_NAME.match(name):
-            warnings.add(
-                f"Part {name!r} still has a default name. Give it a clear name in Onshape so reports are readable."
-            )
+    default_named = [n for n, link in robot.links.items() if link.visuals and DEFAULT_PART_NAME.match(n)]
+    if default_named:
+        shown = ", ".join(default_named[:5]) + (" ..." if len(default_named) > 5 else "")
+        warnings.add(
+            f"{len(default_named)} part(s) still have default names ({shown}). Give them clear names in Onshape so "
+            "reports are readable."
+        )
 
     return Model(robot, cfg, robot_from_world, base_links, components, frozen, group_of, warnings, world)

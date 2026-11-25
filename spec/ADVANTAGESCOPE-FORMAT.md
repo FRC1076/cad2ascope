@@ -28,8 +28,13 @@ Paraphrased from https://docs.advantagescope.org/more-features/custom-assets/ on
 - With component poses published, the zeroed rotations and position move each component to the robot origin, then the published pose places it. Example from the docs: an arm segment's zeroed transform puts its pivot at the origin pointing along +X, and the published pose sits at the joint pointing along the segment.
 - Mesh names containing `NOSIMPLIFY` are never removed by automatic simplification.
 
-## Open points for Phase 0 (see PHASE0-CHECKLIST.md, section B)
+## Confirmed in Phase 0 from the AdvantageScope source
 
-- Whether a rotation sequence uses fixed or moving axes.
-- The exact composition order of robot pose, component pose, zeroed transform, and robot-level transform.
-- Which axis a `cameras` entry looks along.
+Details, with file and line references, are in `docs/phase0-findings.md` section B.
+
+- A rotation sequence turns about **fixed** axes, in list order: `[r1, …, rn]` gives `Rn·…·R1`. `position` applies after rotation.
+- With component poses published: component world = robot pose · component pose · `zeroedPosition`/`zeroedRotations`. The component pose is robot-relative. The robot-level `rotations`/`position` are not applied to components.
+- With no component poses: component world = robot pose · robot-level `position`/`rotations`, the same as the base model.
+- A `cameras` entry looks along its frame's **+X** with +Z up (the WPILib camera frame).
+- `fov` is documented as horizontal, but the renderer uses `fov / aspect` as the vertical FOV. Write `aspect × true vertical FOV` to get the real view.
+- Meshes need normals, and color comes only from the material base color (vertex colors and textures are dropped). Automatic simplification drops whole meshes smaller than 2/4/8 cm in radius (cinematic/standard/low-power), unless the name contains `NOSIMPLIFY` or `disableSimplification` is true. Names containing "carpet" are treated as carpet.

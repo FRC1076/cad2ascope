@@ -7,6 +7,7 @@ Inputs you need from Bill before starting:
 - [ ] A copy of the 2026 Rebuilt main assembly document, shared with the API key owner. Bill makes the copy, never the original.
 - [ ] `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY` in your local environment (read-only key).
 - [ ] Optional: a manual URDF export zip of the same assembly, downloaded from the Onshape UI, for comparison.
+- [ ] For A5 to A7: Bill or a Design lead edits the copy in the Onshape UI (rename a mate, add connectors, add a relation) and creates a new Version. The API key is read-only, so Claude Code cannot make these edits.
 
 Base URL is `https://aaps.onshape.com`. Enterprise accounts replace `cad` in API URLs with the company domain.
 

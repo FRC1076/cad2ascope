@@ -25,7 +25,7 @@ joints:                             # only listed j_ mates become components
 
 mesh:
   triangle_budget: 300000
-  exclude_names: ["*screw*", "*bolt*", "*nut*", "*washer*", "*rivet*"]
+  exclude_names: ["*screw*", "*bolt*", "*nut*", "*washer*", "*rivet*", "*bhcs*", "*shcs*", "*fhcs*"]
   min_part_size_mm: 6
   keep_detail: ["*bumper*"]         # adds NOSIMPLIFY to these mesh names
 

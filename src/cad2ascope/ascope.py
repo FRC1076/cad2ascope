@@ -12,7 +12,7 @@ from pathlib import Path
 from cad2ascope import __version__
 from cad2ascope.cameras import Camera, Frame
 from cad2ascope.grouping import Model
-from cad2ascope.meshes import GroupMesh
+from cad2ascope.reduce import MeshStats, ReducedGroup
 from cad2ascope.transforms import to_config, zeroed_config
 
 DIGITS = 9
@@ -64,10 +64,11 @@ def manifest_json(
     model: Model,
     cameras: list[Camera],
     frames: list[Frame],
-    groups: list[GroupMesh],
+    groups: list[ReducedGroup],
     sizes: dict[str, int],
     source_name: str,
     source_sha256: str,
+    mesh_stats: MeshStats | None = None,
 ) -> dict:
     """Record of what made this model. No timestamps, so an unchanged input gives an unchanged file."""
     cfg = model.config
@@ -84,7 +85,13 @@ def manifest_json(
             "version": cfg.robot.version,
         },
         "robot": {"name": cfg.robot.name, "folder": cfg.robot.folder, "origin_frame": cfg.robot.origin_frame},
-        "base": {"file": base.file, "links": base.links, "triangles": base.triangles, "bytes": sizes[base.file]},
+        "base": {
+            "file": base.file,
+            "links": base.links,
+            "source_triangles": base.source_triangles,
+            "triangles": base.triangles,
+            "bytes": sizes[base.file],
+        },
         "components": [
             {
                 "index": c.index,
@@ -99,6 +106,7 @@ def manifest_json(
                 "limits": [c.joint.lower, c.joint.upper] if c.joint.type != "continuous" else None,
                 "T0": _matrix(c.T0),
                 "links": c.links,
+                "source_triangles": by_file[c.file].source_triangles,
                 "triangles": by_file[c.file].triangles,
                 "bytes": sizes[c.file],
             }
@@ -120,6 +128,7 @@ def manifest_json(
         ],
         "frames": [{"name": f.name, "link": f.link, "component": f.component, "T": _matrix(f.T)} for f in frames],
         "triangles_total": sum(g.triangles for g in groups),
+        "mesh": mesh_stats.as_dict() if mesh_stats else None,
         "warnings": list(model.warnings),
     }
 

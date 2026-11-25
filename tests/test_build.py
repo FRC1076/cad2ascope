@@ -87,22 +87,42 @@ def test_cameras_and_frames_match_oracle(name, built):
 
 @pytest.mark.parametrize("name", VALID)
 def test_every_mesh_is_where_the_urdf_puts_it(name, built):
-    """Each link's box, in the .glb of the group it belongs to, is centered where FK of robot.urdf says."""
-    result = built[name]
-    model = result.model
+    """Before reduction, each link's box is centered where FK of robot.urdf says, in its group."""
+    from cad2ascope.export import load_export
+    from cad2ascope.meshes import place_groups
+
+    model = built[name].model
     world = _link_frames(FIXTURES / name / "robot.urdf")
     robot_from_world = np.linalg.inv(world[model.config.robot.origin_frame])
-    files = {"model.glb": model.base_links} | {c.file: c.links for c in model.components}
-    for file, links in files.items():
-        scene = trimesh.load(result.folder / file, force="scene")
-        for link in links:
+    with load_export(FIXTURES / f"{name}.zip") as export:
+        groups = place_groups(model, export)
+    expected_files = {"model.glb": model.base_links} | {c.file: c.links for c in model.components}
+    assert {g.file: g.links for g in groups} == expected_files
+    for group in groups:
+        by_name = {p.name: p for p in group.parts}
+        for link in group.links:
             visuals = model.robot.links[link].visuals
             if not visuals:
                 continue
             center_local = visuals[0].origin[:3, 3]
             expected = (robot_from_world @ world[link] @ np.append(center_local, 1.0))[:3]
-            geom = scene.geometry[link]
-            np.testing.assert_allclose(geom.bounds.mean(axis=0), expected, atol=1e-6)
+            np.testing.assert_allclose(by_name[link].mesh.bounds.mean(axis=0), expected, atol=1e-6)
+
+
+@pytest.mark.parametrize("name", VALID)
+def test_output_files_cover_their_placed_parts(name, built):
+    """After merging by color, welding and re-shading, each .glb spans exactly what its placed parts did."""
+    from cad2ascope.export import load_export
+    from cad2ascope.meshes import place_groups
+
+    result = built[name]
+    with load_export(FIXTURES / f"{name}.zip") as export:
+        groups = place_groups(result.model, export)
+    for group in groups:
+        scene = trimesh.load(result.folder / group.file, force="scene")
+        lo = np.min([p.mesh.bounds[0] for p in group.parts], axis=0)
+        hi = np.max([p.mesh.bounds[1] for p in group.parts], axis=0)
+        np.testing.assert_allclose(scene.bounds, [lo, hi], atol=1e-6)
 
 
 @pytest.mark.parametrize("name", VALID)

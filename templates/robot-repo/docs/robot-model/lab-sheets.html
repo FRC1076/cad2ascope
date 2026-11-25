@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot model lab sheets</title>
+<style>
+  /* One US Letter page per procedure. Open in a browser and print (portrait, margins: default). */
+  @page { size: letter; margin: 0.55in; }
+  :root { --ink: #1d1a24; --muted: #5f5a6b; --line: #cfcad8; --accent: #5b2a86; --warn: #8a4b00; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); background: #fff; font: 11.5pt/1.42 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .sheet { max-width: 7.4in; margin: 0 auto; padding: 0.3in 0; page-break-after: always; break-after: page; }
+  .sheet:last-child { page-break-after: auto; break-after: auto; }
+  header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--accent); padding-bottom: 6px; margin-bottom: 10px; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 19pt; margin: 0; }
+  .meta { color: var(--muted); font-size: 10pt; }
+  h2 { font-size: 12pt; margin: 14px 0 4px; color: var(--accent); }
+  ol, ul { margin: 4px 0 4px 1.2em; padding: 0; }
+  li { margin: 3px 0; }
+  code { font: 10pt ui-monospace, "SF Mono", Consolas, monospace; background: #f1eef5; padding: 0 3px; border-radius: 3px; }
+  .box { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 8px 0; }
+  .warn { border-left: 4px solid var(--warn); }
+  .check { list-style: none; margin-left: 0; }
+  .check li::before { content: "\2610"; margin-right: 8px; font-size: 13pt; }
+  table { border-collapse: collapse; width: 100%; font-size: 9.6pt; }
+  th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 4px 6px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  footer { margin-top: 10px; color: var(--muted); font-size: 9pt; }
+  @media screen { body { background: #ecebf0; } .sheet { background: #fff; margin: 18px auto; padding: 0.5in; box-shadow: 0 1px 4px rgba(0,0,0,.15); } }
+</style>
+</head>
+<body>
+
+<section class="sheet">
+  <header><h1>P1. Season setup</h1><span class="meta">Design leads + programmer &middot; once per robot &middot; ~1 hour</span></header>
+  <h2>In Onshape (main assembly)</h2>
+  <ul class="check">
+    <li>Configuration input <code>Export</code> = <code>Full</code> / <code>AdvantageScope</code>. In AdvantageScope, <b>suppress</b> game pieces, wiring, chain, belts, cosmetic parts. Hidden parts still export.</li>
+    <li>Mate connector <code>ascope_origin</code> on the drivetrain: center of frame, floor plane, +X front, +Z up.</li>
+    <li>Only one Fixed part, on the drivetrain. Every other part is mated (Fastened is fine).</li>
+    <li>Each moving mechanism: one <b>Revolute</b> or <b>Slider</b> mate named <code>j_lowercase_name</code>, unique, <b>with limits</b>. No Planar, Cylindrical, Parallel or Ball.</li>
+    <li>Closed loops (four-bars): fasten all but one joint in AdvantageScope.</li>
+    <li>Stages driven by one motor: link the Sliders with a linear relation.</li>
+    <li>Cameras: connector <code>cam_NAME</code> at the lens center (+X out of the lens, +Z up). Measured points: <code>frame_name</code>.</li>
+    <li>Pose every <code>j_</code> mate at code zero, save Named Position <code>ascope_zero</code>, create a Version.</li>
+  </ul>
+  <h2>On a team laptop (needs uv)</h2>
+  <ol>
+    <li>Export: right-click assembly tab &rarr; Export &rarr; URDF, GLTF, Medium, rigid subassemblies <b>off</b>.</li>
+    <li><code>uvx --from git+https://github.com/FRC1076/cad2ascope cad2ascope inspect export.zip</code>: every <code>j_</code> mate says MOVES; fix any Notes.</li>
+    <li><code>&hellip; cad2ascope init export.zip --name "1076 2027"</code> writes <code>cad/advantagescope.yaml</code>. Fill in signals, ratios, directions, <code>onshape_url</code>.</li>
+    <li><code>&hellip; cad2ascope run --zip export.zip</code>, then wire <code>RobotVisualizer</code> and <code>visualizer.set(...)</code> calls; <code>./gradlew test</code>.</li>
+    <li>Mentor: copy the workflow, add secrets <code>ONSHAPE_ACCESS_KEY</code> / <code>ONSHAPE_SECRET_KEY</code> and variable <code>ONSHAPE_BASE_URL</code>, allow Actions to write and open pull requests, add <code>cad/drops/.gitkeep</code>.</li>
+    <li>Do P2 once to confirm.</li>
+  </ol>
+  <footer>Full version: docs/robot-model/P1-season-setup.md</footer>
+</section>
+
+<section class="sheet">
+  <header><h1>P2. Update the model</h1><span class="meta">Any student &middot; whenever CAD changes &middot; ~2 minutes of clicks</span></header>
+  <h2>Route A: Run workflow</h2>
+  <ol>
+    <li>Onshape: Named Position <code>ascope_zero</code>, then <b>create a Version</b> with a clear name (&ldquo;Week 4, new intake plates&rdquo;).</li>
+    <li>GitHub: <b>Actions</b> &rarr; <b>Update robot model</b> &rarr; <b>Run workflow</b>. Leave blank for the newest Version.</li>
+    <li>Wait 5 to 15 minutes for the pull request on <code>robot-model/update</code>.</li>
+    <li>Read the pull request top to bottom:
+      <ul>
+        <li>First line says <b>Robot code changes needed</b>? &rarr; do P3.</li>
+        <li>Preview images: everything attached and in place?</li>
+        <li>Zero-pose check says <b>Pass</b>?</li>
+        <li>Camera table: anything moved? &rarr; vision lead checks it.</li>
+        <li>Warnings.</li>
+      </ul>
+    </li>
+    <li>Ask the software lead or a mentor to review and merge. Nothing merges by itself.</li>
+  </ol>
+  <h2>Route B: no API key (drop a zip)</h2>
+  <ol>
+    <li>Onshape: AdvantageScope configuration, <code>ascope_zero</code> &rarr; Export &rarr; URDF, GLTF, Medium &rarr; download.</li>
+    <li>GitHub: new branch &rarr; <code>cad/drops/</code> &rarr; Add file &rarr; Upload files &rarr; <b>one</b> zip &rarr; commit.</li>
+    <li>The workflow replaces the zip with the new model on your branch. The report is on the Actions run page.</li>
+    <li>Open a pull request from your branch and ask for a review.</li>
+  </ol>
+  <div class="box warn">Run failed? Open it in Actions, find the red X step, look up the message on the P5 sheet.</div>
+  <footer>Full version: docs/robot-model/P2-update-model.md</footer>
+</section>
+
+<section class="sheet">
+  <header><h1>P3. Add or remove a mechanism</h1><span class="meta">CAD student + programmer &middot; ~15 minutes</span></header>
+  <div class="box">Adding or removing a moving mechanism changes the signals robot code must provide. The build breaks <b>on purpose</b> until the code catches up.</div>
+  <ol>
+    <li><b>CAD student:</b> add or rename the Revolute/Slider mate <code>j_&hellip;</code> with limits. Pose at <code>ascope_zero</code>. Create a Version.</li>
+    <li><b>Programmer:</b> in <code>cad/advantagescope.yaml</code>, add (or remove) the joint under <code>joints</code> and its signal under <code>signals</code>. Commit.</li>
+    <li>Do P2 Route A. Expect the first line &ldquo;<b>Robot code changes needed</b>&rdquo; and a failing <code>./gradlew test</code>.</li>
+    <li><b>Programmer:</b> check out <code>robot-model/update</code>. In the subsystem's <code>periodic()</code>, add <code>visualizer.set(Signal.NEW_NAME, position)</code> (meters or radians), or delete the call for a removed signal. Push to the same branch.</li>
+    <li>Test passes &rarr; pull request goes green &rarr; review and merge.</li>
+  </ol>
+  <footer>Full version: docs/robot-model/P3-add-mechanism.md</footer>
+</section>
+
+<section class="sheet">
+  <header><h1>P4. View the robot in AdvantageScope</h1><span class="meta">Anyone &middot; team PC, personal device, mentor computer (not district MacBooks)</span></header>
+  <ol>
+    <li>Pull the latest robot code (or download the repo).</li>
+    <li>AdvantageScope: <b>App &rarr; Use Custom Assets Folder</b> &rarr; the repo's <code>assets/advantagescope</code>. Once per computer.</li>
+    <li>Open a log, or connect to the robot or simulator.</li>
+    <li>Add a <b>3D Field</b> tab and pick this season's robot model.</li>
+    <li>Drag the robot's pose (the <code>Pose2d</code>/<code>Pose3d</code> the drive code logs) onto the field.</li>
+    <li>Drag <code>RobotModel/Measured</code> onto the robot as <b>components</b>.</li>
+    <li>Optional ghost: robot pose again as a ghost, with <code>RobotModel/Setpoint</code> as components.</li>
+    <li>Camera views: pick a <code>cam_</code> view in the 3D field's camera menu and compare with the PhotonVision stream.</li>
+  </ol>
+  <div class="box">Save your layout so the next person skips steps 4 to 7.</div>
+  <footer>Full version: docs/robot-model/P4-view-model.md</footer>
+</section>
+
+<section class="sheet">
+  <header><h1>P5. Troubleshooting</h1><span class="meta">Errors stop the run &middot; warnings should still be fixed</span></header>
+  <table>
+    <thead><tr><th>Message contains</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>&hellip;is not in the export. Add a mate connector named&hellip;</td><td>Add <code>ascope_origin</code> on the drivetrain; new Version</td></tr>
+      <tr><td>&hellip;exports as several joints&hellip;</td><td>Make the <code>j_</code> mate a Revolute or Slider</td></tr>
+      <tr><td>&hellip;Change it to Revolute or Slider in Onshape</td><td>Change the mate type, or remove it from the config</td></tr>
+      <tr><td>&hellip;is grounded (Fixed) in Onshape&hellip;</td><td>Unfix it and mate it; only the drivetrain is Fixed</td></tr>
+      <tr><td>&hellip;are not mated to anything&hellip;</td><td>Mate them, or suppress them in AdvantageScope</td></tr>
+      <tr><td>&hellip;closed loop(s) of mates&hellip;</td><td>Fasten all but one joint of the loop</td></tr>
+      <tr><td>&hellip;can move in Onshape but is not a j_ mate&hellip;</td><td>Fine if you do not animate it; else rename <code>j_&hellip;</code> and add to config</td></tr>
+      <tr><td>&hellip;Did you mean&hellip;</td><td>Fix the joint name spelling</td></tr>
+      <tr><td>&hellip;has no mate limits&hellip;</td><td>Set limits on the mate</td></tr>
+      <tr><td>&hellip;outside its own mate limits&hellip;</td><td>Pose at <code>ascope_zero</code>; new Version</td></tr>
+      <tr><td>&hellip;has no Versions yet&hellip; / &hellip;no Version named&hellip;</td><td>Create a Version / fix the Version name</td></tr>
+      <tr><td>&hellip;rejected the API key&hellip;</td><td>A mentor updates the repository secrets</td></tr>
+      <tr><td>&hellip;could not open the document&hellip;</td><td>Check <code>onshape_url</code>; share the document with the key owner</td></tr>
+      <tr><td>&hellip;could not export the assembly as URDF&hellip;</td><td>Fix red errors in the Onshape feature list; new Version</td></tr>
+      <tr><td>&hellip;Drop one Onshape export at a time&hellip;</td><td>Leave exactly one zip in <code>cad/drops/</code></td></tr>
+      <tr><td>&hellip;over mesh.triangle_budget&hellip;</td><td>Add patterns to <code>mesh.exclude_names</code></td></tr>
+      <tr><td>Robot code changes needed</td><td>Do P3</td></tr>
+    </tbody>
+  </table>
+  <h2>Symptoms</h2>
+  <ul>
+    <li><b>Does not move:</b> mate missing <code>j_</code>, not in the config, or on a grounded part.</li>
+    <li><b>Moves the wrong way:</b> <code>direction: -1</code>. <b>Offset at zero:</b> re-export from <code>ascope_zero</code> or set <code>zero_offset_deg</code>/<code>_m</code>.</li>
+    <li><b>Comes apart when moving:</b> cut loop; fasten all but one joint. <b>Slow or missing parts:</b> tune <code>mesh.*</code> settings.</li>
+    <li><b>Camera moved a lot:</b> vision lead checks before merging.</li>
+  </ul>
+  <footer>Full version: docs/robot-model/P5-troubleshooting.md</footer>
+</section>
+
+</body>
+</html>

@@ -326,7 +326,7 @@ District MacBooks will not get AdvantageScope. MacBook students trigger and revi
 
 ## §9 Student procedures
 
-Five short procedures cover every student task. Each one becomes a page in the robot repo's `docs/` folder and a one-page printout for the lab. Claude Code writes them in Phase 6 from this outline.
+Five short procedures cover every student task. Each one becomes a page in the robot repo's `docs/` folder and a one-page printout for the lab. Claude Code writes them in Phase 6 from this outline. *[As built in Phase 6:]* the pages and printable sheets are in `templates/robot-repo/docs/robot-model/`. P1 starts from a hand-exported zip (`inspect` and `init` read zips; fetching by URL needs a config first). P2 adds the zip-drop route. P5 lists the messages cad2ascope actually prints, and a test keeps those quotes in sync with the code. The outline below is the original.
 
 ### P1. Season setup (Design leads with a programmer, once per robot, about 1 hour)
 

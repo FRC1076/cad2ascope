@@ -51,7 +51,7 @@ public final class RobotModel {
   private static final int[] kParent = { -1 };
   /** Joint frame in the parent component's frame (or robot frame) with every mechanism at zero. */
   private static final Transform3d[] kJointOrigin = {
-    new Transform3d(new Translation3d(0.01999999999999999, 0.15000000000000002, 0.30000000000000004), new Rotation3d(new Quaternion(0.707106781186548, 0.0, 0.0, -0.707106781186547))), // j_lift
+    new Transform3d(new Translation3d(0.02, 0.15, 0.3), new Rotation3d(new Quaternion(0.707106781187, 0.0, 0.0, -0.707106781187))), // j_lift
   };
   private static final double[][] kAxis = {
     { 0.0, 0.0, 1.0 }, // j_lift

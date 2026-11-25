@@ -39,28 +39,28 @@ class RobotModelTest {
   void posesAtZero() {
     double[] signals = { 0.0 };
     Pose3d[] poses = RobotModel.componentPoses(signals);
-    assertPose("j_lift", 0.01999999999999999, 0.15000000000000002, 0.30000000000000004, 0.707106781186548, 0.0, 0.0, -0.707106781186547, poses[0]);
+    assertPose("j_lift", 0.02, 0.15, 0.3, 0.707106781187, 0.0, 0.0, -0.707106781187, poses[0]);
   }
 
   @Test
   void posesAtSample1() {
     double[] signals = { 0.3 };
     Pose3d[] poses = RobotModel.componentPoses(signals);
-    assertPose("j_lift", 0.01999999999999999, 0.15000000000000002, 0.6000000000000001, 0.707106781186548, 0.0, 0.0, -0.707106781186547, poses[0]);
+    assertPose("j_lift", 0.02, 0.15, 0.6, 0.707106781187, 0.0, 0.0, -0.707106781187, poses[0]);
   }
 
   @Test
   void posesAtSample2() {
-    double[] signals = { 0.9239999999999999 };
+    double[] signals = { 0.924 };
     Pose3d[] poses = RobotModel.componentPoses(signals);
-    assertPose("j_lift", 0.01999999999999999, 0.15000000000000002, 1.224, 0.707106781186548, 0.0, 0.0, -0.707106781186547, poses[0]);
+    assertPose("j_lift", 0.02, 0.15, 1.224, 0.707106781187, 0.0, 0.0, -0.707106781187, poses[0]);
   }
 
   @Test
   void posesAtSample3() {
     double[] signals = { 0.288 };
     Pose3d[] poses = RobotModel.componentPoses(signals);
-    assertPose("j_lift", 0.01999999999999999, 0.15000000000000002, 0.5880000000000001, 0.707106781186548, 0.0, 0.0, -0.707106781186547, poses[0]);
+    assertPose("j_lift", 0.02, 0.15, 0.588, 0.707106781187, 0.0, 0.0, -0.707106781187, poses[0]);
   }
 
 

@@ -54,8 +54,8 @@ public final class RobotModel {
   private static final int[] kParent = { -1, 0 };
   /** Joint frame in the parent component's frame (or robot frame) with every mechanism at zero. */
   private static final Transform3d[] kJointOrigin = {
-    new Transform3d(new Translation3d(0.16, 0.126, 0.386), new Rotation3d(new Quaternion(0.804835451089643, 0.0, 0.0, -0.593498017409772))), // j_turret
-    new Transform3d(new Translation3d(0.09999999999999999, 0.0, 0.09999999999999998), new Rotation3d(new Quaternion(0.995004165278026, 0.0, -0.099833416646828, 0.0))), // j_hood
+    new Transform3d(new Translation3d(0.16, 0.126, 0.386), new Rotation3d(new Quaternion(0.80483545109, 0.0, 0.0, -0.59349801741))), // j_turret
+    new Transform3d(new Translation3d(0.1, 0.0, 0.1), new Rotation3d(new Quaternion(0.995004165278, 0.0, -0.0998334166468, 0.0))), // j_hood
   };
   private static final double[][] kAxis = {
     { 0.0, 0.0, 1.0 }, // j_turret
@@ -101,9 +101,9 @@ public final class RobotModel {
     private Cameras() {}
 
     /** FRONT_LEFT: fixed to the robot. */
-    public static final Transform3d FRONT_LEFT = new Transform3d(new Translation3d(0.34800000000000003, -0.18599999999999997, 0.333), new Rotation3d(new Quaternion(0.925416629179235, 0.059391169294377, 0.163175991494455, -0.336823911336755)));
+    public static final Transform3d FRONT_LEFT = new Transform3d(new Translation3d(0.348, -0.186, 0.333), new Rotation3d(new Quaternion(0.925416629179, 0.0593911692944, 0.163175991494, -0.336823911337)));
 
-    private static final Transform3d kTURRETOnMechanism = new Transform3d(new Translation3d(0.05, -2.7755575615628914e-17, 0.12), new Rotation3d(new Quaternion(0.995004165278026, 0.0, -0.099833416646828, 0.0)));
+    private static final Transform3d kTURRETOnMechanism = new Transform3d(new Translation3d(0.05, 0.0, 0.12), new Rotation3d(new Quaternion(0.995004165278, 0.0, -0.0998334166468, 0.0)));
 
     /** TURRET: rides on j_turret, so its transform depends on the signals. */
     public static Transform3d turret(double[] signals) {
@@ -116,6 +116,6 @@ public final class RobotModel {
     private Frames() {}
 
     /** turret_pivot: fixed to the robot. */
-    public static final Transform3d TURRET_PIVOT = new Transform3d(new Translation3d(0.16, 0.126, 0.386), new Rotation3d(new Quaternion(0.707106781186548, 0.0, 0.0, -0.707106781186547)));
+    public static final Transform3d TURRET_PIVOT = new Transform3d(new Translation3d(0.16, 0.126, 0.386), new Rotation3d(new Quaternion(0.707106781187, 0.0, 0.0, -0.707106781187)));
   }
 }

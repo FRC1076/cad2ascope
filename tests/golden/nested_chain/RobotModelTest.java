@@ -39,43 +39,43 @@ class RobotModelTest {
   void posesAtZero() {
     double[] signals = { 0.0, 0.0 };
     Pose3d[] poses = RobotModel.componentPoses(signals);
-    assertPose("j_turret", 0.16, 0.126, 0.386, 0.804835451089643, 0.0, 0.0, -0.593498017409772, poses[0]);
-    assertPose("j_hood", 0.18955202066613397, 0.030466351087439406, 0.486, 0.800814626197614, -0.059250934851136, -0.08034947292077, -0.590532999406974, poses[1]);
-    assertPose("TURRET", 0.17477601033306694, 0.0782331755437197, 0.506, 0.800814626197614, -0.059250934851136, -0.08034947292077, -0.590532999406974, asPose(RobotModel.Cameras.turret(signals)));
+    assertPose("j_turret", 0.16, 0.126, 0.386, 0.80483545109, 0.0, 0.0, -0.59349801741, poses[0]);
+    assertPose("j_hood", 0.189552020666, 0.0304663510874, 0.486, 0.800814626198, -0.0592509348511, -0.0803494729208, -0.590532999407, poses[1]);
+    assertPose("TURRET", 0.174776010333, 0.0782331755437, 0.506, 0.800814626198, -0.0592509348511, -0.0803494729208, -0.590532999407, asPose(RobotModel.Cameras.turret(signals)));
   }
 
   @Test
   void posesAtSample1() {
     double[] signals = { -1.5, -0.352 };
     Pose3d[] poses = RobotModel.componentPoses(signals);
-    assertPose("j_turret", 0.16, 0.126, 0.386, 0.184337888173828, 0.0, 0.0, -0.982862931940977, poses[0]);
-    assertPose("j_hood", 0.06679609140327739, 0.08976422455233264, 0.486, 0.183805776549829, 0.074625694718872, 0.013996196744154, -0.980025789799094, poses[1]);
-    assertPose("TURRET", 0.1133980457016387, 0.10788211227616634, 0.506, 0.183416966551514, -0.098122564591187, -0.018403081193854, -0.977952711178645, asPose(RobotModel.Cameras.turret(signals)));
+    assertPose("j_turret", 0.16, 0.126, 0.386, 0.184337888174, 0.0, 0.0, -0.982862931941, poses[0]);
+    assertPose("j_hood", 0.0667960914033, 0.0897642245523, 0.486, 0.18380577655, 0.0746256947189, 0.0139961967442, -0.980025789799, poses[1]);
+    assertPose("TURRET", 0.113398045702, 0.107882112276, 0.506, 0.183416966552, -0.0981225645912, -0.0184030811939, -0.977952711179, asPose(RobotModel.Cameras.turret(signals)));
   }
 
   @Test
   void posesAtSample2() {
-    double[] signals = { 1.62, -0.7360000000000002 };
+    double[] signals = { 1.62, -0.736 };
     Pose3d[] poses = RobotModel.componentPoses(signals);
-    assertPose("j_turret", 0.16, 0.126, 0.386, 0.984795784334327, 0.0, 0.0, 0.17371604173863, poses[0]);
-    assertPose("j_hood", 0.25396454736853247, 0.1602149651150898, 0.486, 0.949640969209412, -0.046000592010525, 0.260777235282665, 0.167514801411752, poses[1]);
-    assertPose("TURRET", 0.20698227368426625, 0.14310748255754488, 0.506, 0.979875907360896, 0.01734266597313, -0.098315527849489, 0.172848185105549, asPose(RobotModel.Cameras.turret(signals)));
+    assertPose("j_turret", 0.16, 0.126, 0.386, 0.984795784334, 0.0, 0.0, 0.173716041739, poses[0]);
+    assertPose("j_hood", 0.253964547369, 0.160214965115, 0.486, 0.949640969209, -0.0460005920105, 0.260777235283, 0.167514801412, poses[1]);
+    assertPose("TURRET", 0.206982273684, 0.143107482558, 0.506, 0.979875907361, 0.0173426659731, -0.0983155278495, 0.172848185106, asPose(RobotModel.Cameras.turret(signals)));
   }
 
   @Test
   void posesAtSample3() {
     double[] signals = { -1.56, -0.36 };
     Pose3d[] poses = RobotModel.componentPoses(signals);
-    assertPose("j_turret", 0.16, 0.126, 0.386, 0.154773477071306, 0.0, 0.0, -0.987949983954278, poses[0]);
-    assertPose("j_hood", 0.06479096584094844, 0.09541830916217106, 0.486, 0.154278466035067, 0.078951720624555, 0.012368675054698, -0.98479022974727, poses[1]);
-    assertPose("TURRET", 0.11239548292047422, 0.11070915458108556, 0.506, 0.154000254360513, -0.098630422374335, -0.015451565022338, -0.983014349120865, asPose(RobotModel.Cameras.turret(signals)));
+    assertPose("j_turret", 0.16, 0.126, 0.386, 0.154773477071, 0.0, 0.0, -0.987949983954, poses[0]);
+    assertPose("j_hood", 0.0647909658409, 0.0954183091622, 0.486, 0.154278466035, 0.0789517206246, 0.0123686750547, -0.984790229747, poses[1]);
+    assertPose("TURRET", 0.11239548292, 0.110709154581, 0.506, 0.154000254361, -0.0986304223743, -0.0154515650223, -0.983014349121, asPose(RobotModel.Cameras.turret(signals)));
   }
 
 
   @Test
   void fixedCamerasAndFramesMatchCad() {
-    assertPose("FRONT_LEFT", 0.34800000000000003, -0.18599999999999997, 0.333, 0.925416629179235, 0.059391169294377, 0.163175991494455, -0.336823911336755, asPose(RobotModel.Cameras.FRONT_LEFT));
-    assertPose("turret_pivot", 0.16, 0.126, 0.386, 0.707106781186548, 0.0, 0.0, -0.707106781186547, asPose(RobotModel.Frames.TURRET_PIVOT));
+    assertPose("FRONT_LEFT", 0.348, -0.186, 0.333, 0.925416629179, 0.0593911692944, 0.163175991494, -0.336823911337, asPose(RobotModel.Cameras.FRONT_LEFT));
+    assertPose("turret_pivot", 0.16, 0.126, 0.386, 0.707106781187, 0.0, 0.0, -0.707106781187, asPose(RobotModel.Frames.TURRET_PIVOT));
   }
 
   @Test

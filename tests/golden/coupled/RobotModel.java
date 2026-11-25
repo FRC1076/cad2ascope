@@ -23,8 +23,8 @@ public final class RobotModel {
   public enum Signal {
     /** elevator, in meters. CAD mate limits allow 0.0 to 1.4. */
     ELEVATOR(0.0, 1.4),
-    /** wrist, in radians. CAD mate limits allow -1.325467074800567 to 1.674532925199433. */
-    WRIST(-1.325467074800567, 1.674532925199433);
+    /** wrist, in radians. CAD mate limits allow -1.3254670748 to 1.6745329252. */
+    WRIST(-1.3254670748, 1.6745329252);
 
     /** Lowest value the CAD mate limits allow, in SI units. */
     public final double min;
@@ -55,9 +55,9 @@ public final class RobotModel {
   private static final int[] kParent = { -1, 0, 1 };
   /** Joint frame in the parent component's frame (or robot frame) with every mechanism at zero. */
   private static final Transform3d[] kJointOrigin = {
-    new Transform3d(new Translation3d(0.147, 6.938893903907228e-18, 0.2), new Rotation3d(new Quaternion(0.707106781186548, 0.0, 0.0, -0.707106781186547))), // j_elevator_stage1
-    new Transform3d(new Translation3d(0.06, 0.0, 0.10000000000000003), new Rotation3d(new Quaternion(1.0, 0.0, 0.0, 0.0))), // j_elevator_carriage
-    new Transform3d(new Translation3d(0.049999999999999996, 0.0, 0.04999999999999993), new Rotation3d(new Quaternion(1.0, 0.0, 0.0, 0.0))), // j_wrist
+    new Transform3d(new Translation3d(0.147, 0.0, 0.2), new Rotation3d(new Quaternion(0.707106781187, 0.0, 0.0, -0.707106781187))), // j_elevator_stage1
+    new Transform3d(new Translation3d(0.06, 0.0, 0.1), new Rotation3d(new Quaternion(1.0, 0.0, 0.0, 0.0))), // j_elevator_carriage
+    new Transform3d(new Translation3d(0.05, 0.0, 0.05), new Rotation3d(new Quaternion(1.0, 0.0, 0.0, 0.0))), // j_wrist
   };
   private static final double[][] kAxis = {
     { 0.0, 0.0, 1.0 }, // j_elevator_stage1
@@ -68,7 +68,7 @@ public final class RobotModel {
   private static final int[] kSignal = { 0, 0, 1 };
   /** direction * ratio from the config: CAD joint value = scale * (signal - zero offset). */
   private static final double[] kScale = { 0.5, 0.5, 1.0 };
-  private static final double[] kZeroOffset = { 0.0, 0.0, 0.17453292519943295 };
+  private static final double[] kZeroOffset = { 0.0, 0.0, 0.174532925199 };
 
   /**
    * Component poses in robot frame, in model_i.glb order, ready to log for AdvantageScope.

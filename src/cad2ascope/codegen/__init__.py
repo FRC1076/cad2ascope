@@ -49,13 +49,20 @@ def java_method(name: str) -> str:
     return s if s[0].isalpha() else "n" + s
 
 
+SIG_DIGITS = 12  # far below a nanometer at robot scale; hides last-digit differences between platforms
+
+
 def num(x: float) -> str:
+    """A Java double literal, rounded so the generated file is identical on macOS, Linux and Windows."""
     v = float(x)
     if not math.isfinite(v):
         raise ValueError(f"non-finite number in generated code: {v}")
-    if v == 0:
+    if abs(v) < 1e-12:
         return "0.0"
-    return repr(v)
+    text = f"{v:.{SIG_DIGITS}g}"
+    if not any(c in text for c in ".eE"):
+        text += ".0"
+    return text
 
 
 def quaternion(r: np.ndarray) -> tuple[float, float, float, float]:

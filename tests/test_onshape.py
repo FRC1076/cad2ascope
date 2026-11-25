@@ -220,7 +220,19 @@ def test_run_fetches_then_builds_and_records_the_version(tmp_path, monkeypatch, 
         .read_text()
         .replace("  origin_frame: ascope_origin\n", f"  origin_frame: ascope_origin\n  onshape_url: {URL}\n")
     )
-    rc = main(["run", "-c", str(cfg), "-o", str(tmp_path / "out"), "--cache-dir", str(tmp_path / "cache")])
+    rc = main(
+        [
+            "run",
+            "-c",
+            str(cfg),
+            "-o",
+            str(tmp_path / "out"),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--repo-root",
+            str(tmp_path),
+        ]
+    )
     assert rc == 0, capsys.readouterr().err
     manifest = json.loads((tmp_path / "out" / "Robot_single_revolute" / "manifest.json").read_text())
     assert manifest["source"]["onshape"]["version_name"] == "Week 4"
@@ -244,9 +256,12 @@ def test_run_with_dropped_zip_needs_no_key(tmp_path):
             str(FIXTURES / "prismatic.zip"),
             "-o",
             str(tmp_path),
+            "--repo-root",
+            str(tmp_path),
         ]
     )
     assert rc == 0 and (tmp_path / "Robot_prismatic" / "model_0.glb").is_file()
+    assert (tmp_path / "src/main/java/frc/robot/generated/RobotModel.java").is_file()
 
 
 def test_versions_are_paged_within_the_server_limit(tmp_path):

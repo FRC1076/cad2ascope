@@ -1,0 +1,12 @@
+# Example cameras.baseline file: the hand-typed camera transforms cad2ascope compares against in report.md
+# (PLAN §7.4, §10.3 item 7). Copy it into the robot repo (for example cad/camera-baseline.yaml) and point
+# cameras.baseline at it. Delete it once CAD and code agree; from then on CAD is the only source.
+#
+# Units match how the robot code types them: x, y, z in inches; roll, pitch, yaw in degrees, as passed to
+# WPILib's new Rotation3d(roll, pitch, yaw) (about fixed X, then Y, then Z). +pitch tilts the lens down.
+#
+# Values: FRC1076/2026-Competition, src/main/java/frc/robot/PhysicalConstants.java, PhotonConfig (read 2026-11-25).
+FRONT_LEFT:  {x: 9.278,      y: 12.916,     z: 9.168,  roll: 0, pitch: 20, yaw: 50}
+FRONT_RIGHT: {x: 9.278,      y: -12.916,    z: 9.168,  roll: 0, pitch: 20, yaw: -61}
+REAR_RIGHT:  {x: -10.722310, y: -13.231252, z: 5.748,  roll: 0, pitch: 20, yaw: -147}
+REAR_LEFT:   {x: -10.71,     y: 13.22,      z: 11.83,  roll: 0, pitch: 20, yaw: 140}

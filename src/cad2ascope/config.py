@@ -57,6 +57,7 @@ class CamerasConfig:
     photonvision_calibrations: str | None = None
     fallback_resolution: tuple[int, int] | None = None
     fallback_fov_deg: float | None = None
+    baseline: str | None = None
 
 
 @dataclass(frozen=True)
@@ -167,6 +168,7 @@ def parse_config(data: Any, source: str = CONFIG_NAME) -> Config:
         photonvision_calibrations=c.get("photonvision_calibrations"),
         fallback_resolution=tuple(fb["resolution"]) if "resolution" in fb else None,
         fallback_fov_deg=fb.get("fov_deg"),
+        baseline=c.get("baseline"),
     )
     g = data.get("codegen") or {}
     defaults = CodegenConfig()

@@ -25,7 +25,7 @@ Starting materials for building `cad2ascope`, the Onshape to AdvantageScope pipe
 | `spec/advantagescope.example.yaml` | Example team config file for a robot repo | Yes |
 | `spec/advantagescope.schema.json` | JSON Schema for that config (the example validates against it) | Yes |
 | `spec/ADVANTAGESCOPE-FORMAT.md` | Summary of AdvantageScope's robot asset format, with open points for Phase 0 | Yes |
-| `templates/robot-repo/` | Drafts that go into each robot repo: the GitHub Actions workflow, `RobotVisualizer.java`, and the `updateRobotModel` Gradle task | Yes, as templates |
+| `templates/robot-repo/` | Drafts that go into each robot repo: the GitHub Actions workflow and the `updateRobotModel` Gradle task. (`RobotVisualizer.java` moved into the package in Phase 3; `cad2ascope codegen` writes it.) | Yes, as templates |
 | `tests/fixtures/` | Seven synthetic URDF robots (zip and unpacked), each with a team config and either `expected.json` (an independent oracle) or `expected_error.txt`, plus `make_fixtures.py` to regenerate them | Yes |
 | `prompts/KICKOFF.md` | The first prompt for Claude Code | Yes |
 | `scripts/setup-mac.sh` | Mac setup and check script; `--store-keys` mode for Bill only | Yes |

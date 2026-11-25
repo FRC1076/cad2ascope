@@ -257,7 +257,7 @@ The generator also writes `RobotModelTest.java`, a JUnit test that checks two th
 
 ### 7.2 Hand-written visualizer
 
-`cad2ascope init` writes `RobotVisualizer.java` once, and the software subteam owns it after that (template in `templates/robot-repo/`). Subsystems push their measured position into it. Once per loop it logs the component poses.
+`cad2ascope init` writes `RobotVisualizer.java` once, and the software subteam owns it after that (template in `templates/robot-repo/`). *[As built in Phase 3:]* `codegen` (and `run`) writes `RobotVisualizer.java` and `SweepRobotModel.java` the first time and never overwrites them; the templates live in `src/cad2ascope/codegen/templates/` so they pick up the configured Java package. See `docs/phase3-notes.md`. Subsystems push their measured position into it. Once per loop it logs the component poses.
 
 ```java
 // In ElevatorSubsystem.periodic()

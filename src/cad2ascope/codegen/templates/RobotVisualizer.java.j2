@@ -1,0 +1,44 @@
+// Written once by cad2ascope. The software subteam owns this file after that; cad2ascope never overwrites it.
+// RobotModel is GENERATED; do not edit that one. Only the two recordOutput calls depend on the logging library,
+// so switching to WPILib Telemetry for 2027 changes only those lines (DECISIONS #8).
+
+package {{ visualizer_package }};
+
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import {{ package }}.RobotModel;
+import {{ package }}.RobotModel.Signal;
+import org.littletonrobotics.junction.Logger;
+
+/** Collects mechanism positions from subsystems and logs 3D component poses for AdvantageScope. */
+public class RobotVisualizer extends SubsystemBase {
+  private final double[] measured = RobotModel.zeroSignals();
+  private final double[] setpoints = RobotModel.zeroSignals();
+  private double[] override = null;
+
+  /** Measured position in SI units (meters or radians), with the robot code's zero. */
+  public void set(Signal signal, double value) {
+    measured[signal.ordinal()] = value;
+  }
+
+  /** Target position in SI units. Drawn as a ghost robot in AdvantageScope. */
+  public void setSetpoint(Signal signal, double value) {
+    setpoints[signal.ordinal()] = value;
+  }
+
+  /** Draw these values instead of the measured ones until {@link #clearOverride()}. Used by SweepRobotModel. */
+  public void override(double[] signals) {
+    override = signals.clone();
+  }
+
+  /** Go back to drawing the measured values. */
+  public void clearOverride() {
+    override = null;
+  }
+
+  @Override
+  public void periodic() {
+    double[] shown = override != null ? override : measured.clone();
+    Logger.recordOutput("RobotModel/Measured", RobotModel.componentPoses(shown));
+    Logger.recordOutput("RobotModel/Setpoint", RobotModel.componentPoses(setpoints.clone()));
+  }
+}

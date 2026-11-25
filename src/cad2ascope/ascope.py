@@ -87,6 +87,7 @@ def manifest_json(
             "onshape": onshape_source,
         },
         "robot": {"name": cfg.robot.name, "folder": cfg.robot.folder, "origin_frame": cfg.robot.origin_frame},
+        "signals": list(cfg.signals),
         "base": {
             "file": base.file,
             "links": base.links,

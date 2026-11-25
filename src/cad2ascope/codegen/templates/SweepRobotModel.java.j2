@@ -1,0 +1,63 @@
+// Written once by cad2ascope. The software subteam owns this file after that; cad2ascope never overwrites it.
+
+package {{ visualizer_package }};
+
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj2.command.Command;
+import {{ package }}.RobotModel;
+import {{ package }}.RobotModel.Signal;
+
+/**
+ * Moves each mechanism from its lowest to its highest CAD limit and back, one at a time, while every other mechanism
+ * stays at zero. Run it in simulation and watch the replay in AdvantageScope: every part should stay attached at its
+ * joint through the whole sweep (PLAN §10.3 item 3). It only changes what is drawn, never what the robot does.
+ */
+public class SweepRobotModel extends Command {
+  private final RobotVisualizer visualizer;
+  private final double secondsPerSignal;
+  private final Timer timer = new Timer();
+
+  public SweepRobotModel(RobotVisualizer visualizer, double secondsPerSignal) {
+    this.visualizer = visualizer;
+    this.secondsPerSignal = secondsPerSignal;
+  }
+
+  public SweepRobotModel(RobotVisualizer visualizer) {
+    this(visualizer, 4.0);
+  }
+
+  @Override
+  public void initialize() {
+    timer.restart();
+  }
+
+  @Override
+  public void execute() {
+    Signal[] signals = Signal.values();
+    if (signals.length == 0) {
+      return;
+    }
+    double t = timer.get();
+    int i = Math.min((int) (t / secondsPerSignal), signals.length - 1);
+    double phase = (t - i * secondsPerSignal) / secondsPerSignal;
+    double[] values = RobotModel.zeroSignals();
+    Signal s = signals[i];
+    values[i] = s.min + (s.max - s.min) * 0.5 * (1.0 - Math.cos(2.0 * Math.PI * phase));
+    visualizer.override(values);
+  }
+
+  @Override
+  public boolean isFinished() {
+    return timer.get() >= secondsPerSignal * Signal.values().length;
+  }
+
+  @Override
+  public void end(boolean interrupted) {
+    visualizer.clearOverride();
+  }
+
+  @Override
+  public boolean runsWhenDisabled() {
+    return true;
+  }
+}

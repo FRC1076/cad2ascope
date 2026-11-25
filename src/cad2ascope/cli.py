@@ -36,6 +36,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--repo-root", default=".", help="robot repo root, for relative paths in the config (default .)")
 
+    p = sub.add_parser("codegen", help="write RobotModel.java and its test from an export")
+    p.add_argument("export", help="URDF zip downloaded from Onshape")
+    p.add_argument("-c", "--config", default=CONFIG_NAME, help=f"team config (default {CONFIG_NAME})")
+    p.add_argument("--repo-root", default=".", help="robot repo root; codegen paths are relative to it (default .)")
+
     p = sub.add_parser("fetch", help="export the assembly from Onshape through the API (cached by Version)")
     p.add_argument("-c", "--config", default=CONFIG_NAME, help=f"team config (default {CONFIG_NAME})")
     p.add_argument("--workspace", action="store_true", help="export the live workspace instead of a Version (preview)")
@@ -74,6 +79,19 @@ def _fetch(args):
     )
 
 
+def _codegen(model, cameras, frames, source: str, repo_root: str) -> None:
+    from pathlib import Path
+
+    from cad2ascope.codegen import generate, write
+
+    java, test = generate(model, cameras, frames, source)
+    written = write(java, test, model.config, Path(repo_root))
+    for p in written.generated:
+        print(f"Generated {p}")
+    for p in written.created:
+        print(f"Created {p} (yours to edit from now on)")
+
+
 def _print_build(result) -> None:
     for w in result.warnings:
         print(f"Warning: {w}", file=sys.stderr)
@@ -110,12 +128,30 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{'Cached' if got.cached else 'Exported'}; {got.calls} API call(s).", file=sys.stderr)
         elif args.command == "run":
             from cad2ascope.build import build
+            from cad2ascope.codegen import source_description
 
             if args.zip:
-                _print_build(build(args.zip, args.config, args.out, args.repo_root))
+                result = build(args.zip, args.config, args.out, args.repo_root)
+                source = source_description(None, result.source_name, result.source_sha256)
             else:
                 got = _fetch(args)
-                _print_build(build(got.zip_path, args.config, args.out, args.repo_root, onshape_source=got.source))
+                result = build(got.zip_path, args.config, args.out, args.repo_root, onshape_source=got.source)
+                source = source_description(got.source, result.source_name, result.source_sha256)
+            _print_build(result)
+            _codegen(result.model, result.cameras, result.frames, source, args.repo_root)
+        elif args.command == "codegen":
+            from pathlib import Path
+
+            from cad2ascope.build import analyze
+            from cad2ascope.codegen import source_description
+            from cad2ascope.config import load_config
+            from cad2ascope.export import load_export
+
+            cfg = load_config(args.config)
+            model, cameras, frames = analyze(args.export, cfg, Path(args.repo_root))
+            with load_export(args.export) as export:
+                sha = export.sha256
+            _codegen(model, cameras, frames, source_description(None, Path(args.export).name, sha), args.repo_root)
     except CadError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1

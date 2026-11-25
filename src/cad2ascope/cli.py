@@ -41,15 +41,38 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-c", "--config", default=CONFIG_NAME, help=f"team config (default {CONFIG_NAME})")
     p.add_argument("--repo-root", default=".", help="robot repo root; codegen paths are relative to it (default .)")
 
+    p = sub.add_parser("render", help="write preview PNGs of a built robot folder")
+    p.add_argument("folder", help="the built robot folder, e.g. assets/advantagescope/Robot_1076_2027")
+    p.add_argument("-o", "--out", default="cad/previews", help="where to write the PNGs (default cad/previews)")
+
+    p = sub.add_parser(
+        "ci", help="what the robot repo's GitHub Actions workflow runs (drop or API, build, code, previews)"
+    )
+    p.add_argument("-c", "--config", default=CONFIG_NAME, help=f"team config (default {CONFIG_NAME})")
+    p.add_argument("--version", dest="onshape_version", default="", help="Onshape Version name (blank = robot.version)")
+    p.add_argument("--workspace", action="store_true", help="export the live workspace instead of a Version (preview)")
+    p.add_argument("--drops", default="cad/drops", help="folder students drop export zips into (default cad/drops)")
+    p.add_argument(
+        "-o", "--out", default="assets/advantagescope", help="custom assets folder (default assets/advantagescope)"
+    )
+    p.add_argument("--previews", default="cad/previews", help="where preview PNGs go (default cad/previews)")
+    p.add_argument("--report", default="build/cad2ascope/report.md", help="pull request body to write")
+    p.add_argument("--link-base", default="", help="URL prefix for preview images in the report")
+    p.add_argument("--no-render", action="store_true", help="skip preview PNGs")
+    p.add_argument("--repo-root", default=".", help="robot repo root (default .)")
+    p.add_argument("--cache-dir", help="where exports are cached (default ~/.cache/cad2ascope or $CAD2ASCOPE_CACHE)")
+
     p = sub.add_parser("fetch", help="export the assembly from Onshape through the API (cached by Version)")
     p.add_argument("-c", "--config", default=CONFIG_NAME, help=f"team config (default {CONFIG_NAME})")
     p.add_argument("--workspace", action="store_true", help="export the live workspace instead of a Version (preview)")
+    p.add_argument("--version", dest="onshape_version", help="Onshape Version name to export (overrides robot.version)")
     p.add_argument("--cache-dir", help="where exports are cached (default ~/.cache/cad2ascope or $CAD2ASCOPE_CACHE)")
 
     p = sub.add_parser("run", help="fetch from Onshape (or use --zip), then build")
     p.add_argument("-c", "--config", default=CONFIG_NAME, help=f"team config (default {CONFIG_NAME})")
     p.add_argument("--zip", help="use this URDF zip (for example one dropped in cad/drops/) instead of the API")
     p.add_argument("--workspace", action="store_true", help="export the live workspace instead of a Version (preview)")
+    p.add_argument("--version", dest="onshape_version", help="Onshape Version name to export (overrides robot.version)")
     p.add_argument("--cache-dir", help="where exports are cached (default ~/.cache/cad2ascope or $CAD2ASCOPE_CACHE)")
     p.add_argument(
         "-o", "--out", default="assets/advantagescope", help="custom assets folder (default assets/advantagescope)"
@@ -71,7 +94,7 @@ def _fetch(args):
         )
     return fetch(
         cfg.robot.onshape_url,
-        cfg.robot.version,
+        args.onshape_version or cfg.robot.version,
         cfg.robot.configuration,
         workspace=args.workspace,
         cache_dir=Path(args.cache_dir) if args.cache_dir else None,
@@ -139,6 +162,45 @@ def main(argv: list[str] | None = None) -> int:
                 source = source_description(got.source, result.source_name, result.source_sha256)
             _print_build(result)
             _codegen(result.model, result.cameras, result.frames, source, args.repo_root)
+        elif args.command == "render":
+            from pathlib import Path
+
+            from cad2ascope.render import render_folder
+
+            res = render_folder(Path(args.folder), Path(args.out))
+            for p in res.previews:
+                print(Path(args.out) / p.file)
+            check = "pass" if res.zero_check_pixels == 0 else f"{res.zero_check_pixels} pixels differ"
+            print(f"Zero-pose check (zero poses vs no poses): {check}", file=sys.stderr)
+            if res.zero_check_pixels:
+                return 1
+        elif args.command == "ci":
+            from pathlib import Path
+
+            from cad2ascope.ci import run_ci, write_github_output
+
+            res = run_ci(
+                args.config,
+                args.repo_root,
+                drops=args.drops,
+                out=args.out,
+                previews=args.previews,
+                report=args.report,
+                version=args.onshape_version or None,
+                workspace=args.workspace,
+                link_base=args.link_base,
+                render=not args.no_render,
+                cache_dir=Path(args.cache_dir) if args.cache_dir else None,
+                log=lambda m: print(m, file=sys.stderr),
+            )
+            for w in res.warnings:
+                print(f"Warning: {w}", file=sys.stderr)
+            write_github_output(res, Path(args.repo_root))
+            print(f"{res.title}. Report: {res.report}")
+            if res.breaking:
+                print(
+                    "Robot code needs changes before it compiles (see the first line of the report).", file=sys.stderr
+                )
         elif args.command == "codegen":
             from pathlib import Path
 

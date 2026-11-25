@@ -308,6 +308,8 @@ GitHub Actions is the main route because it works from any browser, including di
 5. Opens or updates a pull request on branch `robot-model/update` with `report.md` as the body and preview renders attached once Phase 5 adds them. The pull request stays open for a person to review and merge. Nothing merges automatically.
 6. Deletes the dropped zip in the same pull request so drops do not pile up.
 
+*[As built in Phase 5, see `docs/phase5-notes.md`:]* the workflow runs one command, `cad2ascope ci`, then `./gradlew test`. A zip dropped on a branch other than the default branch is processed and the result committed back onto that branch, so the student's own pull request updates; every other run opens or updates `robot-model/update`. If `./gradlew test` fails the pull request still opens and the job then fails, because an added or removed joint is meant to break the build until the subsystems catch up (§9 P3). Preview renders and the zero-pose check (§10.3 item 2) are in the pull request body.
+
 A typical run should take 5 to 15 minutes, almost all of it Onshape's translation time. *[Phase 0 measured]* the 2026 robot's API export at 63 s of translation and 74 s including download, so most of a CI run will be installing tools and running `./gradlew test`.
 
 ### 8.2 Local route on team laptops

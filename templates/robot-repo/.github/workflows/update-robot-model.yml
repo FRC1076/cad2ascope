@@ -1,0 +1,102 @@
+# DRAFT for Phase 5. Copy into the robot repo at .github/workflows/update-robot-model.yml.
+# CLI flags below are the intended interface; adjust to match the real cad2ascope CLI.
+# Before use: pin every action to a full commit SHA and set CAD2ASCOPE_REF to a release tag.
+
+name: Update robot model
+
+on:
+  workflow_dispatch:
+    inputs:
+      onshape_version:
+        description: "Onshape Version name to export (blank = latest Version)"
+        required: false
+        default: ""
+      use_workspace:
+        description: "Preview from the live workspace instead of a Version"
+        type: boolean
+        default: false
+  push:
+    paths:
+      - "cad/drops/*.zip"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: robot-model-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CAD2ASCOPE_REF: main            # replace with a release tag, e.g. v1.0.0
+  ONSHAPE_BASE_URL: ${{ vars.ONSHAPE_BASE_URL }}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"      # match the robot project's sourceCompatibility
+
+      - name: Install cad2ascope
+        run: uv tool install "git+https://github.com/FRC1076/cad2ascope@${CAD2ASCOPE_REF}"
+
+      - name: Find a dropped zip (manual export route)
+        id: drop
+        run: |
+          zip=$(git diff --name-only --diff-filter=A "${{ github.event.before }}" "${{ github.sha }}" -- 'cad/drops/*.zip' 2>/dev/null | head -n 1 || true)
+          echo "zip=${zip}" >> "$GITHUB_OUTPUT"
+
+      - name: Run pipeline
+        env:
+          ONSHAPE_ACCESS_KEY: ${{ secrets.ONSHAPE_ACCESS_KEY }}
+          ONSHAPE_SECRET_KEY: ${{ secrets.ONSHAPE_SECRET_KEY }}
+        run: |
+          args=(run --config cad/advantagescope.yaml --report build/cad2ascope/report.md)
+          if [ -n "${{ steps.drop.outputs.zip }}" ]; then
+            args+=(--zip "${{ steps.drop.outputs.zip }}")
+          elif [ "${{ inputs.use_workspace }}" = "true" ]; then
+            args+=(--workspace)
+          elif [ -n "${{ inputs.onshape_version }}" ]; then
+            args+=(--version "${{ inputs.onshape_version }}")
+          fi
+          cad2ascope "${args[@]}"
+
+      - name: Remove the dropped zip
+        if: steps.drop.outputs.zip != ''
+        run: git rm -q "${{ steps.drop.outputs.zip }}"
+
+      - name: Compile and test generated code
+        run: ./gradlew test --no-daemon
+
+      # Manual-export route: commit results back onto the student's branch,
+      # so their open pull request picks up the new model.
+      - name: Commit to the drop branch
+        if: steps.drop.outputs.zip != ''
+        run: |
+          git config user.name "cad2ascope-bot"
+          git config user.email "cad2ascope-bot@users.noreply.github.com"
+          git add assets/advantagescope src/main/java/frc/robot/generated src/test/java/frc/robot/generated
+          git commit -m "Update robot model from dropped Onshape export" || echo "No changes"
+          git push
+
+      # API route: open or update a pull request for review. Never auto-merge.
+      - name: Open pull request
+        if: steps.drop.outputs.zip == ''
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: robot-model/update
+          title: "Update robot model from Onshape"
+          body-path: build/cad2ascope/report.md
+          add-paths: |
+            assets/advantagescope/**
+            src/main/java/frc/robot/generated/**
+            src/test/java/frc/robot/generated/**
+          commit-message: "Update robot model from Onshape"

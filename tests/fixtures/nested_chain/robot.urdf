@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<robot name="nested_chain">
+  <link name="drivetrain">
+    <visual>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/drivetrain.glb"/></geometry>
+    </visual>
+  </link>
+  <link name="ascope_origin">
+  </link>
+  <link name="turret">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/turret.glb"/></geometry>
+    </visual>
+  </link>
+  <link name="hood">
+    <visual>
+      <origin xyz="0.075 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/hood.glb"/></geometry>
+    </visual>
+  </link>
+  <link name="cam_FRONT_LEFT">
+  </link>
+  <link name="cam_TURRET">
+  </link>
+  <link name="frame_turret_pivot">
+  </link>
+  <joint name="ascope_origin_frame" type="fixed">
+    <parent link="drivetrain"/>
+    <child link="ascope_origin"/>
+    <origin xyz="0.05 -0.02 -0.1" rpy="0 0 1.5708"/>
+  </joint>
+  <joint name="j_turret" type="revolute">
+    <parent link="drivetrain"/>
+    <child link="turret"/>
+    <origin xyz="-0.076 0.14 0.286" rpy="0 0 0.3"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3" upper="3" effort="0" velocity="0"/>
+  </joint>
+  <joint name="j_hood" type="revolute">
+    <parent link="turret"/>
+    <child link="hood"/>
+    <origin xyz="0.1 0 0.1" rpy="0 -0.2 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="0.8" effort="0" velocity="0"/>
+  </joint>
+  <joint name="cam_FRONT_LEFT_frame" type="fixed">
+    <parent link="drivetrain"/>
+    <child link="cam_FRONT_LEFT"/>
+    <origin xyz="0.236 0.328 0.233" rpy="0 0.349066 0.872665"/>
+  </joint>
+  <joint name="cam_TURRET_frame" type="fixed">
+    <parent link="turret"/>
+    <child link="cam_TURRET"/>
+    <origin xyz="0.05 0 0.12" rpy="0 -0.2 0"/>
+  </joint>
+  <joint name="frame_turret_pivot_frame" type="fixed">
+    <parent link="drivetrain"/>
+    <child link="frame_turret_pivot"/>
+    <origin xyz="-0.076 0.14 0.286" rpy="0 0 0"/>
+  </joint>
+</robot>

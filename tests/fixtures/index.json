@@ -1,0 +1,44 @@
+[
+  {
+    "name": "single_revolute",
+    "description": "One arm on a revolute joint about the robot's left-right axis.",
+    "valid": true,
+    "expect_error_mentions": null
+  },
+  {
+    "name": "prismatic",
+    "description": "One carriage on a vertical slider.",
+    "valid": true,
+    "expect_error_mentions": null
+  },
+  {
+    "name": "nested_chain",
+    "description": "Turret on the drivetrain, hood on the turret, one camera on each, and a measured frame. Mirrors the 2026 robot.",
+    "valid": true,
+    "expect_error_mentions": null
+  },
+  {
+    "name": "coupled",
+    "description": "Two-stage cascade elevator (carriage mated to stage 1, mimic relation) with a wrist on the carriage. Mirrors the 2025 robot.",
+    "valid": true,
+    "expect_error_mentions": null
+  },
+  {
+    "name": "frozen",
+    "description": "Two movable joints; only one is listed, so the other must be frozen and merged into the base.",
+    "valid": true,
+    "expect_error_mentions": null
+  },
+  {
+    "name": "invalid_two_parents",
+    "description": "A link with two parent joints, as from a closed linkage. Must fail and name the link.",
+    "valid": false,
+    "expect_error_mentions": "bar"
+  },
+  {
+    "name": "missing_origin",
+    "description": "No ascope_origin frame. Must fail with a message telling the student to add it on the drivetrain.",
+    "valid": false,
+    "expect_error_mentions": "ascope_origin"
+  }
+]

@@ -1,0 +1,8 @@
+robot:
+  name: "prismatic"
+  folder: Robot_prismatic
+  origin_frame: ascope_origin
+signals:
+  lift: {units: m}
+joints:
+  j_lift: {signal: lift}

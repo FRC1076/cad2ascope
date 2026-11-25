@@ -1,0 +1,72 @@
+{
+  "root_link": "drivetrain",
+  "components": [
+    {
+      "index": 0,
+      "joint": "j_lift",
+      "type": "prismatic",
+      "child_link": "carriage",
+      "T0": [
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.02
+        ],
+        [
+          -1.0,
+          0.0,
+          0.0,
+          0.15
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.3
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "zeroed": [
+        [
+          0.0,
+          -1.0,
+          -0.0,
+          0.15
+        ],
+        [
+          1.0,
+          0.0,
+          0.0,
+          -0.02
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.3
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "axis_in_child_frame": [
+        0,
+        0,
+        1
+      ]
+    }
+  ],
+  "frozen_joints": [],
+  "cameras": {},
+  "frames": {},
+  "note": "4x4 matrices, row-major, meters. ROBOT frame = origin_frame (+X front, +Y left, +Z up, floor plane)."
+}

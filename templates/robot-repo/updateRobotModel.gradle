@@ -1,0 +1,18 @@
+// Paste into the robot repo's build.gradle (or apply from a separate file).
+// Usage:
+//   ./gradlew updateRobotModel                 (uses ONSHAPE_ACCESS_KEY / ONSHAPE_SECRET_KEY from the environment)
+//   ./gradlew updateRobotModel -Pzip=path.zip  (manual Onshape URDF export, no key needed)
+// Requires uv (https://docs.astral.sh/uv/). No admin rights needed to install it.
+
+def cad2ascopeRef = 'main'   // replace with a release tag, e.g. 'v1.0.0'
+
+tasks.register('updateRobotModel', Exec) {
+    group = 'cad2ascope'
+    description = 'Rebuild the AdvantageScope robot model and RobotModel.java from Onshape'
+    def args = ['uv', 'tool', 'run', '--from', "git+https://github.com/FRC1076/cad2ascope@${cad2ascopeRef}",
+                'cad2ascope', 'run', '--config', 'cad/advantagescope.yaml']
+    if (project.hasProperty('zip')) {
+        args += ['--zip', project.property('zip')]
+    }
+    commandLine args
+}

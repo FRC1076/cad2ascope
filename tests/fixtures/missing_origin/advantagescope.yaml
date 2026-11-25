@@ -1,0 +1,8 @@
+robot:
+  name: "missing_origin"
+  folder: Robot_missing_origin
+  origin_frame: ascope_origin
+signals:
+  arm: {units: rad}
+joints:
+  j_arm: {signal: arm}

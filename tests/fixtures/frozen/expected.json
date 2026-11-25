@@ -1,0 +1,74 @@
+{
+  "root_link": "drivetrain",
+  "components": [
+    {
+      "index": 0,
+      "joint": "j_intake",
+      "type": "revolute",
+      "child_link": "intake",
+      "T0": [
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.02
+        ],
+        [
+          -1.0,
+          0.0,
+          0.0,
+          -0.3
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.25
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "zeroed": [
+        [
+          0.0,
+          -1.0,
+          -0.0,
+          -0.3
+        ],
+        [
+          1.0,
+          0.0,
+          0.0,
+          -0.02
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          -0.25
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "axis_in_child_frame": [
+        0,
+        1,
+        0
+      ]
+    }
+  ],
+  "frozen_joints": [
+    "Revolute 7"
+  ],
+  "cameras": {},
+  "frames": {},
+  "note": "4x4 matrices, row-major, meters. ROBOT frame = origin_frame (+X front, +Y left, +Z up, floor plane)."
+}

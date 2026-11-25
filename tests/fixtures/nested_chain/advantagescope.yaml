@@ -1,0 +1,15 @@
+robot:
+  name: "nested_chain"
+  folder: Robot_nested_chain
+  origin_frame: ascope_origin
+signals:
+  turret: {units: rad}
+  hood: {units: rad}
+joints:
+  j_turret: {signal: turret}
+  j_hood: {signal: hood, direction: -1}
+cameras:
+  frame_prefix: cam_
+  fallback: {resolution: [1280, 800], fov_deg: 70}
+frames:
+  frame_prefix: frame_

@@ -1,0 +1,8 @@
+robot:
+  name: "frozen"
+  folder: Robot_frozen
+  origin_frame: ascope_origin
+signals:
+  intake: {units: rad}
+joints:
+  j_intake: {signal: intake}

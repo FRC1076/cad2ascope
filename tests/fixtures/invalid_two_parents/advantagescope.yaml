@@ -1,0 +1,8 @@
+robot:
+  name: "invalid_two_parents"
+  folder: Robot_invalid_two_parents
+  origin_frame: ascope_origin
+signals:
+  arm: {units: rad}
+joints:
+  j_left: {signal: arm}

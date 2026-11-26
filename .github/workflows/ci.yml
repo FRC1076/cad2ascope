@@ -19,19 +19,29 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          # The last version listed becomes JAVA_HOME: 17 for WPILib 2026. WPILib 2027 needs 25 (JAVA_HOME_25_X64).
+          java-version: |
+            25
+            17
       - name: Install
         run: uv sync --locked
       - name: Cache WPILib and JUnit jars
         uses: actions/cache@v4
         with:
-          path: ~/.cad2ascope-m2
+          path: |
+            ~/.cad2ascope-m2
+            ~/.cad2ascope-m2-2027
           key: java-deps-${{ hashFiles('scripts/fetch-java-deps.py') }}
-      - name: Fetch WPILib and JUnit jars
-        run: uv run python scripts/fetch-java-deps.py ~/.cad2ascope-m2
+      - name: Fetch WPILib and JUnit jars (2026 and 2027)
+        run: |
+          uv run python scripts/fetch-java-deps.py ~/.cad2ascope-m2
+          uv run python scripts/fetch-java-deps.py ~/.cad2ascope-m2-2027 --wpilib 2027
       - name: Lint
         run: |
           uv run ruff check .
           uv run ruff format --check .
-      - name: Test (generated Java is compiled and its JUnit tests run)
-        run: WPILIB_MAVEN=~/.cad2ascope-m2 CAD2ASCOPE_REQUIRE_JAVA=1 uv run pytest
+      - name: Test (generated Java is compiled and its JUnit tests run, against WPILib 2026 and 2027)
+        run: |
+          export WPILIB_MAVEN=~/.cad2ascope-m2 CAD2ASCOPE_REQUIRE_JAVA=1
+          export WPILIB_MAVEN_2027=~/.cad2ascope-m2-2027 JAVA_HOME_2027="$JAVA_HOME_25_X64" CAD2ASCOPE_REQUIRE_JAVA_2027=1
+          uv run pytest

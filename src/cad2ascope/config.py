@@ -65,6 +65,7 @@ class CodegenConfig:
     java_package: str = "frc.robot.generated"
     output: str = "src/main/java/frc/robot/generated/RobotModel.java"
     test_output: str = "src/test/java/frc/robot/generated/RobotModelTest.java"
+    wpilib: int = 2026  # WPILib year the generated Java targets; 2027 renamed the packages to org.wpilib
 
 
 @dataclass(frozen=True)
@@ -176,6 +177,7 @@ def parse_config(data: Any, source: str = CONFIG_NAME) -> Config:
         java_package=g.get("java_package", defaults.java_package),
         output=g.get("output", defaults.output),
         test_output=g.get("test_output", defaults.test_output),
+        wpilib=g.get("wpilib", defaults.wpilib),
     )
     return Config(
         robot=robot,

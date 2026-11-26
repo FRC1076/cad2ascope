@@ -1,10 +1,15 @@
 // Written once by cad2ascope. The software subteam owns this file after that; cad2ascope never overwrites it.
 // RobotModel is GENERATED; do not edit that one. Only the two recordOutput calls depend on the logging library,
 // so switching to WPILib Telemetry for 2027 changes only those lines (DECISIONS #8).
+{% if wpilib >= 2027 %}
+// With Telemetry: import org.wpilib.telemetry.Telemetry and {{ wpi_name("Pose3d") }} in place of Logger, then
+//   Telemetry.log("RobotModel/Measured", RobotModel.componentPoses(shown), Pose3d.struct);
+//   Telemetry.log("RobotModel/Setpoint", RobotModel.componentPoses(setpoints.clone()), Pose3d.struct);
+{% endif %}
 
 package {{ visualizer_package }};
 
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
+{{ wpi_imports("SubsystemBase") }}
 import {{ package }}.RobotModel;
 import {{ package }}.RobotModel.Signal;
 import org.littletonrobotics.junction.Logger;

@@ -41,3 +41,4 @@ codegen:
   java_package: frc.robot.generated
   output: src/main/java/frc/robot/generated/RobotModel.java
   test_output: src/test/java/frc/robot/generated/RobotModelTest.java
+  wpilib: 2026              # WPILib year of the robot code: 2026, or 2027 (packages renamed to org.wpilib)

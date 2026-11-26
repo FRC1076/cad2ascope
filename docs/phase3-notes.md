@@ -25,7 +25,7 @@
 ## Verification
 
 - **Formula, independently:** for every fixture and five random signal vectors, the numpy poses equal a separate forward-kinematics walk of `robot.urdf` with the joints moved (scipy rotations), including the turret camera that rides on the turret.
-- **WPILib usage:** the generated Java is compiled with `javac -Xlint:all -Werror` against WPILib 2026.2.1 jars and its JUnit test is run, for every fixture. Locally the jars come from the WPILib installer's offline Maven repository. In CI, `scripts/fetch-java-deps.py` downloads the same versions (checking each against its published SHA-1), and `CAD2ASCOPE_REQUIRE_JAVA=1` makes a missing JDK or jar a failure rather than a skip.
+- **WPILib usage:** the generated Java is compiled with `javac -Xlint:all -Werror` against WPILib 2026.2.1 jars and its JUnit test is run, for every fixture. Locally the jars come from the WPILib installer's offline Maven repository. In CI, `scripts/fetch-java-deps.py` downloads the same versions (checking each against its published SHA-1), and `CAD2ASCOPE_REQUIRE_JAVA=1` makes a missing JDK or jar a failure rather than a skip. CI also runs the same tests against WPILib 2027 alpha-8 with JDK 25 (`--wpilib 2027`, `CAD2ASCOPE_REQUIRE_JAVA_2027=1`).
 - **Templates:** `RobotVisualizer` and `SweepRobotModel` compile against `wpilibj` and `wpilibNewCommands` 2026.2.1. CI also compiles `RobotVisualizer` against AdvantageKit 26.0.2's real `Logger` (`akit-java`, the version in the 2026 robot code's vendordep), where the call resolves to `recordOutput(String, T...)` with `T extends StructSerializable`. Verified 2026-11-25. The WPILib installer's offline repository has no AdvantageKit, so a local run without `scripts/fetch-java-deps.py` falls back to a compile-only stand-in `Logger`.
 - **Golden files** for `RobotModel.java` and `RobotModelTest.java` per fixture (`tests/golden/`).
 - **Real export:** the 2026 manual export (hood mate renamed to `j_hood` in a scratch copy) generates a `RobotModel` that compiles and passes its 6 tests; the hood signal range comes out as −20° to 0°.
@@ -70,5 +70,5 @@ A dry run of HUMAN-CHECKLIST items 6 and 7 before the CAD edits. It used a local
 
 ## Open points
 
-- **WPILib 2027:** the 2027 robot uses WPILib 2027 and SystemCore. Check whether the geometry classes keep their 2026 package names and constructors when the 2027 robot project exists; the template's imports are the only place to change.
+- **WPILib 2027:** checked against 2027 alpha-8 (2026-11-26, `docs/readiness-checks.md` §1). The packages moved from `edu.wpi.first` to `org.wpilib`, `TimedRobot.kDefaultPeriod` became `DEFAULT_PERIOD`, and Java 25 is required. With those renamed, every fixture's generated test passes. `codegen.wpilib: 2027` now writes the 2027 names, and CI tests both years.
 - **Logging (DECISIONS #8):** only the two `recordOutput` lines in `RobotVisualizer` depend on AdvantageKit.

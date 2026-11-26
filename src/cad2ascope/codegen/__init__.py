@@ -32,6 +32,39 @@ TEMPLATES = Path(__file__).parent / "templates"
 SAMPLE_FRACTIONS = (0.25, 0.6, 0.9)
 
 
+# WPILib classes the generated code and templates use, by WPILib year. 2027 moved everything from edu.wpi.first to
+# org.wpilib (checked against 2027.0.0-alpha-8; docs/readiness-checks.md section 1).
+_GEOMETRY = ("Pose3d", "Quaternion", "Rotation3d", "Transform3d", "Translation3d")
+WPILIB_CLASSES = {
+    2026: {
+        "VecBuilder": "edu.wpi.first.math.VecBuilder",
+        **{c: f"edu.wpi.first.math.geometry.{c}" for c in _GEOMETRY},
+        "TimedRobot": "edu.wpi.first.wpilibj.TimedRobot",
+        "Command": "edu.wpi.first.wpilibj2.command.Command",
+        "SubsystemBase": "edu.wpi.first.wpilibj2.command.SubsystemBase",
+    },
+    2027: {
+        "VecBuilder": "org.wpilib.math.linalg.VecBuilder",
+        **{c: f"org.wpilib.math.geometry.{c}" for c in _GEOMETRY},
+        "TimedRobot": "org.wpilib.framework.TimedRobot",
+        "Command": "org.wpilib.command2.Command",
+        "SubsystemBase": "org.wpilib.command2.SubsystemBase",
+    },
+}
+DEFAULT_PERIOD = {2026: "kDefaultPeriod", 2027: "DEFAULT_PERIOD"}  # TimedRobot's loop period constant (0.02 s)
+
+
+def _wpilib_ctx(year: int) -> dict:
+    """Template helpers that write WPILib names for one WPILib year."""
+    classes = WPILIB_CLASSES[year]
+    return {
+        "wpilib": year,
+        "wpi_name": lambda c: classes[c],
+        "wpi_imports": lambda *names: "\n".join(sorted(f"import {classes[n]};" for n in names)),
+        "default_period": DEFAULT_PERIOD[year],
+    }
+
+
 def java_const(name: str) -> str:
     """UPPER_SNAKE Java identifier from a signal, camera or frame name."""
     s = re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_").upper()
@@ -294,6 +327,7 @@ def generate(
         "moving_expected": moving_expected,
         "moving_all": cams_moving + frames_moving,
         "fixed_all": cams_fixed + frames_fixed,
+        **_wpilib_ctx(cfg.codegen.wpilib),
     }
     return env.get_template("RobotModel.java.j2").render(ctx), env.get_template("RobotModelTest.java.j2").render(ctx)
 
@@ -322,9 +356,9 @@ def visualizer_package(java_package: str) -> str:
     return f"{head}.visualization"
 
 
-def robot_code_templates(java_package: str) -> dict[str, str]:
+def robot_code_templates(java_package: str, wpilib: int = 2026) -> dict[str, str]:
     """RobotVisualizer.java and SweepRobotModel.java (written once; the team owns them after that)."""
-    ctx = {"package": java_package, "visualizer_package": visualizer_package(java_package)}
+    ctx = {"package": java_package, "visualizer_package": visualizer_package(java_package), **_wpilib_ctx(wpilib)}
     env = _env()
     return {
         name: env.get_template(f"{name}.j2").render(ctx) for name in ("RobotVisualizer.java", "SweepRobotModel.java")
@@ -346,7 +380,7 @@ def write(java: str, test: str, cfg, repo_root: Path) -> Written:
         path.write_text(text)
     vis_dir = out_java.parent.parent / "visualization"
     created, kept = [], []
-    for name, text in robot_code_templates(cfg.codegen.java_package).items():
+    for name, text in robot_code_templates(cfg.codegen.java_package, cfg.codegen.wpilib).items():
         path = vis_dir / name
         if path.exists():
             kept.append(path)

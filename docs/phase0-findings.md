@@ -19,7 +19,7 @@ Status on 2026-11-25: **section B (AdvantageScope) is done. Section A (Onshape e
 
 ## Section B: AdvantageScope semantics
 
-Source: https://github.com/Mechanical-Advantage/AdvantageScope at commit `ea60b46` (2026-11-25). Paths below are relative to that repo. Each rule is also encoded in `tests/ascope_reference.py`, a port of this code that `tests/test_transforms.py` checks `cad2ascope.transforms` against.
+Source: https://github.com/Mechanical-Advantage/AdvantageScope at commit `ea60b46` (2026-11-25). Rechecked 2026-11-26: every rule below also holds in release `v26.0.2` and in `v27.0.0-beta-1`, with line numbers moved (`docs/readiness-checks.md` §2). Paths below are relative to that repo. Each rule is also encoded in `tests/ascope_reference.py`, a port of this code that `tests/test_transforms.py` checks `cad2ascope.transforms` against.
 
 ### B1. Rotation sequences use fixed (extrinsic) axes, applied in list order
 

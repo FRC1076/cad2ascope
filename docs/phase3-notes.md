@@ -70,5 +70,5 @@ A dry run of HUMAN-CHECKLIST items 6 and 7 before the CAD edits. It used a local
 
 ## Open points
 
-- **WPILib 2027:** the 2027 robot uses WPILib 2027 and SystemCore. Check whether the geometry classes keep their 2026 package names and constructors when the 2027 robot project exists; the template's imports are the only place to change.
+- **WPILib 2027:** checked against 2027 alpha-8 (2026-11-26, `docs/readiness-checks.md` §1). The packages moved from `edu.wpi.first` to `org.wpilib`, `TimedRobot.kDefaultPeriod` became `DEFAULT_PERIOD`, and Java 25 is required. With those renamed, every fixture's generated test passes. Supporting both years needs a codegen setting (proposed, not built).
 - **Logging (DECISIONS #8):** only the two `recordOutput` lines in `RobotVisualizer` depend on AdvantageKit.

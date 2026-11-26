@@ -44,8 +44,29 @@ Camera names are compared without regard to case, because Onshape lowercases nam
 §10.3 items 2, 3 and 7 need the 2026 CAD edits (student sheet) and a branch of `FRC1076/2026-Competition` with the visualizer wired in:
 
 - **Item 2** (zero poses look identical to no poses): needs `cad2ascope render` (Phase 5) or a person comparing in AdvantageScope.
-- **Item 3** (sweep stays attached): run `SweepRobotModel` in simulation and watch the replay.
+- **Item 3** (sweep stays attached): run `SweepRobotModel` in simulation and watch the replay. Done for the hood in the trial below; the other joints wait for the CAD edits.
 - **Item 7** (CAD cameras vs `PhotonConfig`): point `cameras.baseline` at the example file and read report.md.
+
+## Trial on the 2026 robot code (2026-11-25)
+
+A dry run of HUMAN-CHECKLIST items 6 and 7 before the CAD edits. It used a local branch of `FRC1076/2026-Competition` (nothing pushed) and the 2026 manual export with the hood mate renamed `j_hood` in a scratch copy. The config listed one joint, `j_hood: {signal: hood, direction: -1}`.
+
+**Wiring took six lines:**
+- `RobotContainer` creates one `RobotVisualizer` and passes it to `HoodSubsystem`'s constructor;
+- `HoodSubsystem.periodic()` calls `visualizer.set(Signal.HOOD, inputs.angleRadians)` right after `Logger.processInputs`;
+- in simulation only, `RobotContainer` schedules the sweep with `CommandScheduler.getInstance().schedule(new SweepRobotModel(m_visualizer))`. `Command.schedule()` is deprecated for removal in WPILib 2026, and `-Werror` builds would fail on it.
+
+**Results:**
+- `./gradlew build` passes, and it runs the generated `RobotModelTest` (the robot project already has JUnit 5).
+- In `./gradlew simulateJava`, the sweep logged 200 hood poses (4 s at one per loop), from 0° to 20° and back. Each pose matches cad2ascope's own kinematics (`render.component_poses`) to within 6e-5. A close-up render at 0°, 10° and 20° shows the hood turning about its pivot and staying attached (§10.3 item 3, for the hood only).
+- The moving hood component has 63 parts, including its wheels, belts and 300-tooth gear.
+
+**Found and fixed:** `SweepRobotModel` used the clock. The simulator's first loops take about 2 s, so the first run drew only the second half of the sweep. The template now advances one 20 ms loop per call. This affects only new robot repos, since the file is written once.
+
+**For the pilot:**
+- **Hood direction is a guess.** The code's hood angle runs 0 to 0.25 rad (soft stops in `HoodConstants`), and the CAD limits are −20° to 0°. So `direction: -1` was assumed. Confirm it on the robot or in a match log: hood up should look up.
+- **The CAD range (20°) is wider than the code's soft stops (14.3°).** This is not wrong, but the sweep shows positions the robot never reaches.
+- **The robot code's `SystemConstants.kMode` is `REAL`.** So `simulateJava` uses the real IO layers. In `SIM` mode, AdvantageKit only publishes to NetworkTables and writes no log file. Watch the sweep live by connecting AdvantageScope to the simulator, or add a `WPILOGWriter` to the `SIM` branch of `Robot.java` (the trial did both: `SIM` mode plus a writer, and a headless simulator).
 
 ## Open points
 

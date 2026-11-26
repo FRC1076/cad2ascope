@@ -1,6 +1,6 @@
 # Readiness checks that need no CAD edits (2026-11-26)
 
-These are four checks done while Phase 7 waits on the Onshape edits. Nothing in `src/` changed. Results:
+These are four checks done while Phase 7 waits on the Onshape edits. The first led to one code change, the `codegen.wpilib` setting (§1). Results:
 - **WPILib 2027:** the generated code works after renaming its imports.
 - **AdvantageScope:** every rule cad2ascope relies on holds in the current release and the 2027 beta.
 - **Logging:** both 2027 logging options compile.
@@ -28,7 +28,15 @@ These are four checks done while Phase 7 waits on the Onshape edits. Nothing in 
 - **Java 25.** The alpha-8 jars are class-file version 69, which needs JDK 25. Alpha-3 needed only Java 21. CI's JDK must be 25 for a 2027 check.
 - **One more jar for compiling against commands.** `Command` implements `org.wpilib.tunable.ComplexTunable`, so compiling against `commandsv2` also needs `org.wpilib.tunables:tunables-java`. A robot project's Gradle setup pulls it in by itself; only the bare-`javac` test harness needs it listed.
 
-**Proposed change (not built; Bill decides).** Add a new `wpilib` setting under `codegen` (not in the schema yet) (`2026` or `2027`) that picks the import names and `DEFAULT_PERIOD`. Then extend CI to compile and test against 2027 with JDK 25, next to the existing 2026 check. Until 2027 leaves alpha, its names could still change, so the check should pin one alpha and be updated by hand. PLAN §7.1 is updated to say the generated code is not import-compatible across years.
+**Built (2026-11-26, after Bill approved the proposal):**
+- **The setting:** `codegen.wpilib` takes `2026` (the default) or `2027`. It picks the import names in all four Java files and the `TimedRobot` period constant. The class-to-package table is `WPILIB_CLASSES` in `src/cad2ascope/codegen/__init__.py`.
+- **2026 output:** byte-for-byte unchanged, so the golden files still pass.
+- **2027 output:** a test checks that it differs from the 2026 output only in import lines.
+- **Fetching 2027 jars:** `scripts/fetch-java-deps.py <folder> --wpilib 2027` downloads the alpha-8 jars and AdvantageKit `27.0.0-alpha-7`.
+- **CI:** installs JDK 25 next to JDK 17 and compiles and runs every fixture's generated test against both years. It also compiles the templates with AdvantageKit, and the 2027 visualizer with the `Telemetry` lines its header suggests.
+- **Locally:** the 2027 tests run when `WPILIB_MAVEN_2027` and `JAVA_HOME_2027` (a JDK 25) are set, and skip otherwise.
+
+Until 2027 leaves alpha its names may still change. CI pins alpha-8; update the version in `scripts/fetch-java-deps.py` by hand when a new alpha or the release comes out.
 
 ## 2. AdvantageScope rules, rechecked
 

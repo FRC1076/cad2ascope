@@ -74,7 +74,7 @@ Phases 0 to 6 are merged (as of 2026-11-25); PLAN §11 has each phase's exit sta
 - `tests/fixtures/make_fixtures.py` builds synthetic URDF robots with independently computed `expected.json`. Treat `expected.json` as the oracle; if the generator changes, regenerate rather than editing outputs by hand.
 - Golden files live in `tests/golden/<fixture>/` (`config.json`, `RobotModel.java`, `RobotModelTest.java`). After an intended change, run with `CAD2ASCOPE_UPDATE_GOLDEN=1` and review the diff before committing.
 - `tests/ascope_reference.py` ports AdvantageScope's own placement math; transform tests check against it, not an assumed version.
-- Generated Java is compiled with `-Werror` against real WPILib jars and its JUnit test is run (`tests/java_harness.py`). Locally it uses the WPILib installer's Maven folder (`~/wpilib/<year>/maven`); CI downloads the pinned jars with `scripts/fetch-java-deps.py` and sets `CAD2ASCOPE_REQUIRE_JAVA=1` so a missing JDK fails instead of skipping.
+- Generated Java is compiled with `-Werror` against real WPILib jars and its JUnit test is run (`tests/java_harness.py`). Locally it uses the WPILib installer's Maven folder (`~/wpilib/<year>/maven`); CI downloads the pinned jars with `scripts/fetch-java-deps.py` and sets `CAD2ASCOPE_REQUIRE_JAVA=1` so a missing JDK fails instead of skipping. The same tests also run against WPILib 2027 (`codegen.wpilib: 2027`, JDK 25): set `WPILIB_MAVEN_2027` and `JAVA_HOME_2027` locally, and CI sets `CAD2ASCOPE_REQUIRE_JAVA_2027=1`.
 - The Onshape client is tested against a fake server (`tests/test_onshape.py`); never call the real API from tests.
 
 ## Definition of done for a phase

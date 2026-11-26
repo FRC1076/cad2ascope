@@ -10,6 +10,7 @@ Three independent checks:
 
 from __future__ import annotations
 
+import dataclasses
 import math
 import os
 import xml.etree.ElementTree as ET
@@ -29,9 +30,21 @@ from test_fixtures import FIXTURES, VALID
 GOLDEN = Path(__file__).resolve().parent / "golden"
 
 
-def _model(name):
+def _model(name, wpilib: int | None = None):
     cfg = load_config(FIXTURES / name / "advantagescope.yaml")
+    if wpilib is not None:
+        cfg = dataclasses.replace(cfg, codegen=dataclasses.replace(cfg.codegen, wpilib=wpilib))
     return analyze(FIXTURES / f"{name}.zip", cfg, FIXTURES)
+
+
+def _java_skip(year: int):
+    return pytest.mark.skipif(
+        not java_harness.available(year) and not java_harness.required(year),
+        reason=f"no WPILib {year} Maven folder or JDK found (see tests/java_harness.py)",
+    )
+
+
+YEARS = [pytest.param(y, marks=_java_skip(y), id=f"wpilib{y}") for y in java_harness.YEARS]
 
 
 def _urdf_fk(name: str, joint_values: dict[str, float]) -> dict[str, np.ndarray]:
@@ -109,16 +122,29 @@ def test_generated_java_matches_golden(name):
     assert test == (golden_dir / "RobotModelTest.java").read_text()
 
 
-@pytest.mark.skipif(
-    not java_harness.available() and not os.environ.get("CAD2ASCOPE_REQUIRE_JAVA"),
-    reason="no WPILib Maven folder or JDK found",
-)
+@pytest.mark.parametrize("year", YEARS)
 @pytest.mark.parametrize("name", VALID)
-def test_generated_java_compiles_and_its_tests_pass(name, tmp_path):
-    model, cams, frames = _model(name)
+def test_generated_java_compiles_and_its_tests_pass(name, year, tmp_path):
+    model, cams, frames = _model(name, year)
     java, test = generate(model, cams, frames, f"{name}.zip (fixture)")
-    result = java_harness.compile_and_test(java, test, model.config.codegen.java_package, tmp_path)
+    result = java_harness.compile_and_test(java, test, model.config.codegen.java_package, tmp_path, year)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def _non_import_lines(text: str) -> list[str]:
+    return [line for line in text.splitlines() if not line.startswith("import ")]
+
+
+@pytest.mark.parametrize("name", VALID)
+def test_wpilib_2027_changes_only_imports(name):
+    """2027 output is the 2026 output (golden-checked above) with WPILib's org.wpilib names in the imports."""
+    model, cams, frames = _model(name)
+    old = generate(model, cams, frames, f"{name}.zip (fixture)")
+    model, cams, frames = _model(name, 2027)
+    new = generate(model, cams, frames, f"{name}.zip (fixture)")
+    for a, b in zip(old, new, strict=True):
+        assert _non_import_lines(a) == _non_import_lines(b)
+        assert "edu.wpi.first" not in b and "import org.wpilib.math.geometry.Pose3d;" in b
 
 
 def test_signal_ranges_follow_ratio_direction_and_offset():
@@ -149,17 +175,40 @@ def test_quaternion_is_normalized_with_positive_w():
         np.testing.assert_allclose(Rotation.from_quat([x, y, z, w]).as_matrix(), r.as_matrix(), atol=1e-12)
 
 
-@pytest.mark.skipif(
-    not java_harness.available() and not os.environ.get("CAD2ASCOPE_REQUIRE_JAVA"),
-    reason="no WPILib Maven folder or JDK found",
-)
-def test_visualizer_and_sweep_templates_compile(tmp_path):
+@pytest.mark.parametrize("year", YEARS)
+def test_visualizer_and_sweep_templates_compile(year, tmp_path):
     from cad2ascope.codegen import robot_code_templates, visualizer_package
 
-    model, cams, frames = _model("coupled")
+    model, cams, frames = _model("coupled", year)
     java, _ = generate(model, cams, frames, "coupled.zip (fixture)")
     pkg = model.config.codegen.java_package
-    result = java_harness.compile_robot_code(java, robot_code_templates(pkg), pkg, visualizer_package(pkg), tmp_path)
+    templates = robot_code_templates(pkg, year)
+    result = java_harness.compile_robot_code(java, templates, pkg, visualizer_package(pkg), tmp_path, year)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+@_java_skip(2027)
+def test_visualizer_compiles_with_wpilib_telemetry_2027(tmp_path):
+    """DECISIONS #8: the Telemetry lines the 2027 template suggests in its header comment compile as written."""
+    from cad2ascope.codegen import robot_code_templates, visualizer_package
+
+    model, cams, frames = _model("coupled", 2027)
+    java, _ = generate(model, cams, frames, "coupled.zip (fixture)")
+    pkg = model.config.codegen.java_package
+    templates = robot_code_templates(pkg, 2027)
+    vis = templates["RobotVisualizer.java"]
+    suggested = [line.strip().removeprefix("//").strip() for line in vis.splitlines() if "Telemetry.log(" in line]
+    assert len(suggested) == 2
+    body = [line for line in vis.splitlines() if "Logger.recordOutput(" not in line or line.lstrip().startswith("//")]
+    body = "\n".join(body).replace(
+        "import org.littletonrobotics.junction.Logger;",
+        "import org.wpilib.math.geometry.Pose3d;\nimport org.wpilib.telemetry.Telemetry;",
+    )
+    anchor = "measured.clone();\n"
+    assert anchor in body
+    body = body.replace(anchor, anchor + "".join(f"    {s}\n" for s in suggested), 1)
+    templates["RobotVisualizer.java"] = body
+    result = java_harness.compile_robot_code(java, templates, pkg, visualizer_package(pkg), tmp_path, 2027)
     assert result.returncode == 0, result.stdout + result.stderr
 
 

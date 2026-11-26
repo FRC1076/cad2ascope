@@ -30,7 +30,7 @@ Needs [uv](https://docs.astral.sh/uv/) (no admin rights) and the robot repo.
    uvx --from git+https://github.com/FRC1076/cad2ascope cad2ascope init export.zip --name "1076 2027"
    ```
    It writes `cad/advantagescope.yaml` with one signal per `j_` mate.
-4. Edit `cad/advantagescope.yaml` with the software lead: signal names that match the code, `ratio` (relative to the part it rides on), `direction: -1` where CAD and code disagree, and `zero_offset_deg` or `zero_offset_m` if needed. Paste the assembly URL into `robot.onshape_url` and set `robot.configuration: "Export=AdvantageScope"`.
+4. Edit `cad/advantagescope.yaml` with the software lead: signal names that match the code, `ratio` (relative to the part it rides on), `direction: -1` where CAD and code disagree, and `zero_offset_deg` or `zero_offset_m` if needed. Paste the assembly URL into `robot.onshape_url` and set `robot.configuration: "Export=AdvantageScope"`. If the robot code uses WPILib 2027, add `wpilib: 2027` under `codegen` (2027 renamed WPILib's packages).
 5. Build once locally to check: `uvx --from git+https://github.com/FRC1076/cad2ascope cad2ascope run --zip export.zip`. It writes the model, `RobotModel.java`, and, the first time only, `RobotVisualizer.java` and `SweepRobotModel.java`.
 6. Wire `RobotVisualizer` into `RobotContainer` and add `visualizer.set(Signal.X, position)` in each subsystem's `periodic()`. Run `./gradlew test`.
 7. **Repo settings (a mentor, once):**

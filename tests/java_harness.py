@@ -1,8 +1,12 @@
 """Compile and run generated Java against real WPILib jars, without Gradle.
 
-Looks for a Maven-layout folder with WPILib and JUnit jars: $WPILIB_MAVEN, else ~/wpilib/<year>/maven (installed
-by the WPILib installer). Looks for javac in $JAVA_HOME, else the WPILib JDK, else PATH. Tests skip if either is
-missing; CI provides both (.github/workflows/ci.yml).
+Each WPILib year has its own jars and JDK:
+- 2026: a Maven-layout folder in $WPILIB_MAVEN, else ~/wpilib/2026/maven (installed by the WPILib installer); javac
+  from $JAVA_HOME, else ~/wpilib/2026/jdk, else PATH.
+- 2027: $WPILIB_MAVEN_2027, else ~/wpilib/2027/maven; javac from $JAVA_HOME_2027, else ~/wpilib/2027/jdk. WPILib
+  2027 needs Java 25.
+`scripts/fetch-java-deps.py <folder> [--wpilib 2027]` fills such a folder. Tests for a year skip if its jars or JDK
+are missing, unless CAD2ASCOPE_REQUIRE_JAVA (2026) or CAD2ASCOPE_REQUIRE_JAVA_2027 is set, as in CI.
 """
 
 from __future__ import annotations
@@ -13,10 +17,8 @@ import subprocess
 from pathlib import Path
 
 HERE = Path(__file__).parent
-ARTIFACTS = [
-    "edu/wpi/first/wpimath/wpimath-java",
-    "edu/wpi/first/wpiunits/wpiunits-java",
-    "edu/wpi/first/wpiutil/wpiutil-java",
+YEARS = (2026, 2027)
+COMMON = [
     "org/ejml/ejml-core",
     "org/ejml/ejml-ddense",
     "org/ejml/ejml-simple",
@@ -32,34 +34,65 @@ ARTIFACTS = [
     "org/opentest4j/opentest4j",
     "org/apiguardian/apiguardian-api",
 ]
+ARTIFACTS = {
+    2026: [
+        "edu/wpi/first/wpimath/wpimath-java",
+        "edu/wpi/first/wpiunits/wpiunits-java",
+        "edu/wpi/first/wpiutil/wpiutil-java",
+        *COMMON,
+    ],
+    2027: [
+        "org/wpilib/wpimath/wpimath-java",
+        "org/wpilib/wpiunits/wpiunits-java",
+        "org/wpilib/wpiutil/wpiutil-java",
+        *COMMON,
+    ],
+}
 OPTIONAL = {"us/hebi/quickbuf/quickbuf-runtime"}
 AKIT = "org/littletonrobotics/akit/akit-java"
-ROBOT_ARTIFACTS = [
-    "edu/wpi/first/wpilibj/wpilibj-java",
-    "edu/wpi/first/wpilibNewCommands/wpilibNewCommands-java",
-    "edu/wpi/first/hal/hal-java",
-    "edu/wpi/first/ntcore/ntcore-java",
-]
+ROBOT_ARTIFACTS = {
+    2026: [
+        "edu/wpi/first/wpilibj/wpilibj-java",
+        "edu/wpi/first/wpilibNewCommands/wpilibNewCommands-java",
+        "edu/wpi/first/hal/hal-java",
+        "edu/wpi/first/ntcore/ntcore-java",
+    ],
+    2027: [
+        "org/wpilib/wpilibj/wpilibj-java",
+        "org/wpilib/commandsv2/commandsv2-java",
+        "org/wpilib/tunables/tunables-java",  # Command implements org.wpilib.tunable.ComplexTunable
+        "org/wpilib/hal/hal-java",
+        "org/wpilib/ntcore/ntcore-java",
+        "org/wpilib/datalog/datalog-java",
+        "org/wpilib/telemetry/telemetry-java",
+    ],
+}
 
 
-def maven_root() -> Path | None:
-    env = os.environ.get("WPILIB_MAVEN")
+def _suffix(year: int) -> str:
+    return "" if year == 2026 else f"_{year}"
+
+
+def required(year: int = 2026) -> bool:
+    """CI sets CAD2ASCOPE_REQUIRE_JAVA (2026) and CAD2ASCOPE_REQUIRE_JAVA_2027, so a missing JDK or jar fails."""
+    return bool(os.environ.get(f"CAD2ASCOPE_REQUIRE_JAVA{_suffix(year)}"))
+
+
+def maven_root(year: int = 2026) -> Path | None:
+    env = os.environ.get(f"WPILIB_MAVEN{_suffix(year)}")
     if env and Path(env).is_dir():
         return Path(env)
-    for year in ("2027", "2026"):
-        p = Path.home() / "wpilib" / year / "maven"
-        if p.is_dir():
-            return p
-    return None
+    p = Path.home() / "wpilib" / str(year) / "maven"
+    return p if p.is_dir() else None
 
 
 def _version_key(v: str):
     return [int(x) if x.isdigit() else x for x in v.replace("-", ".").split(".")]
 
 
-def classpath(root: Path, extra: list[str] | None = None) -> list[Path] | None:
+def classpath(root: Path, extra: list[str] | None = None, year: int = 2026) -> list[Path] | None:
     jars = []
-    for art in ARTIFACTS + (extra or []):
+    for art in ARTIFACTS[year] + (extra or []):
         d = root / art
         versions = sorted((v.name for v in d.iterdir() if v.is_dir()), key=_version_key) if d.is_dir() else []
         jar = None
@@ -76,29 +109,33 @@ def classpath(root: Path, extra: list[str] | None = None) -> list[Path] | None:
     return jars
 
 
-def jdk_bin() -> Path | None:
-    for base in [os.environ.get("JAVA_HOME"), *(str(Path.home() / "wpilib" / y / "jdk") for y in ("2027", "2026"))]:
+def jdk_bin(year: int = 2026) -> Path | None:
+    for base in [os.environ.get(f"JAVA_HOME{_suffix(year)}"), str(Path.home() / "wpilib" / str(year) / "jdk")]:
         if base and (Path(base) / "bin" / "javac").exists():
             return Path(base) / "bin"
+    if year != 2026:
+        return None  # the default javac on PATH is too old for WPILib 2027's Java 25 class files
     javac = shutil.which("javac")
     return Path(javac).parent if javac else None
 
 
-def akit_jar(root: Path) -> Path | None:
+def akit_jar(root: Path, year: int = 2026) -> Path | None:
     """AdvantageKit's jar, if the Maven folder has it (scripts/fetch-java-deps.py adds it; the WPILib installer does not)."""
-    jars = classpath(root, [AKIT])
+    jars = classpath(root, [AKIT], year)
     return jars[-1] if jars and jars[-1].parent.parent.name == "akit-java" else None
 
 
-def available() -> bool:
-    root = maven_root()
-    return root is not None and classpath(root) is not None and jdk_bin() is not None
+def available(year: int = 2026) -> bool:
+    root = maven_root(year)
+    return root is not None and classpath(root, year=year) is not None and jdk_bin(year) is not None
 
 
-def compile_and_test(java: str, test: str, package: str, workdir: Path) -> subprocess.CompletedProcess:
+def compile_and_test(
+    java: str, test: str, package: str, workdir: Path, year: int = 2026
+) -> subprocess.CompletedProcess:
     """Compile RobotModel + RobotModelTest + the runner, then run the test class. Returns the run's result."""
-    jars = classpath(maven_root())  # type: ignore[arg-type]
-    bin_ = jdk_bin()
+    jars = classpath(maven_root(year), year=year)  # type: ignore[arg-type]
+    bin_ = jdk_bin(year)
     pkg_dir = workdir / "src" / Path(*package.split("."))
     pkg_dir.mkdir(parents=True, exist_ok=True)
     (pkg_dir / "RobotModel.java").write_text(java)
@@ -127,19 +164,19 @@ def compile_and_test(java: str, test: str, package: str, workdir: Path) -> subpr
 
 
 def compile_robot_code(
-    java: str, templates: dict[str, str], package: str, vis_package: str, workdir: Path
+    java: str, templates: dict[str, str], package: str, vis_package: str, workdir: Path, year: int = 2026
 ) -> subprocess.CompletedProcess:
     """Compile RobotModel plus the hand-owned templates against WPILib command-based jars (compile only).
 
     Uses AdvantageKit's real Logger when its jar is in the Maven folder. Otherwise, a compile-only stand-in, unless
     CAD2ASCOPE_REQUIRE_JAVA is set (CI), where a missing AdvantageKit jar is an error.
     """
-    root = maven_root()
-    jars = classpath(root, ROBOT_ARTIFACTS)  # type: ignore[arg-type]
+    root = maven_root(year)
+    jars = classpath(root, ROBOT_ARTIFACTS[year], year)  # type: ignore[arg-type]
     if jars is None:
-        raise RuntimeError("WPILib command-based jars not found")
-    akit = akit_jar(root)  # type: ignore[arg-type]
-    if akit is None and os.environ.get("CAD2ASCOPE_REQUIRE_JAVA"):
+        raise RuntimeError(f"WPILib {year} command-based jars not found")
+    akit = akit_jar(root, year)  # type: ignore[arg-type]
+    if akit is None and required(year):
         raise RuntimeError("AdvantageKit jar not found; run scripts/fetch-java-deps.py into $WPILIB_MAVEN")
     src = workdir / "src"
     gen = src / Path(*package.split("."))
@@ -159,7 +196,7 @@ def compile_robot_code(
     cp = os.pathsep.join(str(j) for j in jars)
     return subprocess.run(
         [
-            str(jdk_bin() / "javac"),
+            str(jdk_bin(year) / "javac"),
             "-Xlint:all",
             "-Xlint:-processing",
             "-Xlint:-classfile",  # wpilibNewCommands references an annotation jar the offline repo lacks

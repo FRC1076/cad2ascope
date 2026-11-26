@@ -192,6 +192,21 @@ def test_zero_check_catches_a_wrong_zeroed_transform(tmp_path):
     assert render_folder(result.folder, tmp_path / "bad", 160, 120).zero_check_pixels > 0
 
 
+def test_zero_check_allows_a_configured_zero_offset(tmp_path):
+    """coupled's wrist has zero_offset_deg 10: at code zero it sits 10 degrees from its export pose on purpose."""
+    from cad2ascope.build import build
+    from cad2ascope.render import preview_markdown
+
+    result = build(FIXTURES / "coupled.zip", FIXTURES / "coupled" / "advantagescope.yaml", tmp_path, repo_root=FIXTURES)
+    rendered = render_folder(result.folder, tmp_path / "png", 160, 120)
+    assert rendered.zero_check_pixels == 0 and rendered.offset_joints == ["j_wrist"]
+    assert "checked at their export pose" in preview_markdown(rendered, "")
+    manifest = json.loads((result.folder / "manifest.json").read_text())
+    with_offset = component_poses(manifest, [0.0, 0.0])
+    without = component_poses(manifest, [0.0, 0.0], use_zero_offset=False)
+    assert not np.allclose(with_offset[-1], without[-1])  # the offset really moves the wrist at code zero
+
+
 # ----------------------------------------------------------------------------------------------- workflow template
 
 
@@ -210,6 +225,7 @@ def test_workflow_never_pastes_inputs_into_scripts():
 def test_workflow_cad2ascope_arguments_parse():
     text = WORKFLOW.read_text()
     assert "args=(ci --link-base" in text and "--version" in text and "--workspace" in text
+    assert "/raw/${{ steps.target.outputs.branch }}/cad/previews" in text  # blob/ links show as broken images
     args = build_parser().parse_args(["ci", "--link-base", "x", "--version", "Week 4", "--workspace"])
     assert args.onshape_version == "Week 4" and args.workspace and args.link_base == "x"
     wf = yaml.safe_load(WORKFLOW.read_text())

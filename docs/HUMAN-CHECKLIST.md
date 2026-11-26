@@ -69,6 +69,8 @@ This is Phase 5's exit check: PLAN §9 P2 working from a MacBook browser. Follow
 
 Then run it once from the Actions tab, and once by dropping a zip. Watch the pull request body and its preview images load. It works best after item 2, so there is a Version to export.
 
+The drop route already passed in the test repo [FRC1076/cad2ascope-test-robot](https://github.com/FRC1076/cad2ascope-test-robot) (private; see [phase5-notes.md](phase5-notes.md)). Its [pull request #1](https://github.com/FRC1076/cad2ascope-test-robot/pull/1) shows the five preview images (confirmed 2026-11-26). What remains is the Onshape route and P2 from a MacBook browser.
+
 ## 6. Wire the visualizer into a branch of the 2026 robot code
 
 On a branch of [FRC1076/2026-Competition](https://github.com/FRC1076/2026-Competition), run `cad2ascope run` (or `./gradlew updateRobotModel`, from [updateRobotModel.gradle](../templates/robot-repo/updateRobotModel.gradle)). That writes `RobotModel`, `RobotVisualizer` and `SweepRobotModel`. Then:

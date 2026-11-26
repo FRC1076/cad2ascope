@@ -86,7 +86,8 @@ jobs:
           ONSHAPE_SECRET_KEY: ${{ secrets.ONSHAPE_SECRET_KEY }}
           VERSION: ${{ inputs.onshape_version }}
           WORKSPACE: ${{ inputs.use_workspace }}
-          LINK_BASE: ${{ github.server_url }}/${{ github.repository }}/blob/${{ steps.target.outputs.branch }}/cad/previews
+          # raw/, not blob/: a blob/ link is the file's web page, which a pull request body cannot show as an image.
+          LINK_BASE: ${{ github.server_url }}/${{ github.repository }}/raw/${{ steps.target.outputs.branch }}/cad/previews
         run: |
           args=(ci --link-base "${LINK_BASE}")
           if [ -n "${VERSION}" ]; then args+=(--version "${VERSION}"); fi

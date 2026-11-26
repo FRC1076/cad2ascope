@@ -17,7 +17,7 @@ import json
 import math
 import struct
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -62,8 +62,11 @@ def load_glb(path: Path) -> list[Mesh]:
 # ----------------------------------------------------------------------------------------------- kinematics
 
 
-def component_poses(manifest: dict, signals: list[float]) -> list[np.ndarray]:
-    """Same chain as RobotModel.componentPoses, from the manifest's T0, axis, ratio, direction and zero offset."""
+def component_poses(manifest: dict, signals: list[float], use_zero_offset: bool = True) -> list[np.ndarray]:
+    """Same chain as RobotModel.componentPoses, from the manifest's T0, axis, ratio, direction and zero offset.
+
+    With use_zero_offset=False, each joint's zero offset is ignored, so all-zero signals give the export pose.
+    """
     poses: list[np.ndarray] = []
     names = manifest.get("signals") or []
     for c in manifest["components"]:
@@ -76,7 +79,8 @@ def component_poses(manifest: dict, signals: list[float]) -> list[np.ndarray]:
         parent = np.eye(4) if c["parent_component"] is None else poses[c["parent_component"]]
         origin = np.linalg.inv(parent_t0) @ t0
         value = signals[names.index(c["signal"])] if c["signal"] in names else 0.0
-        q = float(c["direction"]) * float(c["ratio"]) * (value - float(c.get("zero_offset", 0.0)))
+        offset = float(c.get("zero_offset", 0.0)) if use_zero_offset else 0.0
+        q = float(c["direction"]) * float(c["ratio"]) * (value - offset)
         a = np.array(c["axis"], dtype=float)
         a = a / (np.linalg.norm(a) or 1.0)
         if c["type"] == "prismatic":
@@ -255,6 +259,7 @@ class Preview:
 class RenderResult:
     previews: list[Preview]
     zero_check_pixels: int  # pixels that differ between "zero poses published" and "no poses published"
+    offset_joints: list[str] = field(default_factory=list)  # joints with a zero offset, checked at their export pose
 
 
 def _placed(base: list[Mesh], comps: list[list[Mesh]], transforms: list[np.ndarray]) -> list[Mesh]:
@@ -280,8 +285,8 @@ def render_folder(folder: Path, out_dir: Path, width: int = 960, height: int = 7
     zeroed = [from_config(c["zeroedRotations"], c["zeroedPosition"]) for c in config["components"]]
     signals = list(manifest.get("signals") or [])
 
-    def at(values: list[float]) -> list[Mesh]:
-        poses = component_poses(manifest, values)
+    def at(values: list[float], use_zero_offset: bool = True) -> list[Mesh]:
+        poses = component_poses(manifest, values, use_zero_offset)
         return _placed(base, comps, [p @ z for p, z in zip(poses, zeroed, strict=True)])
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -293,10 +298,13 @@ def render_folder(folder: Path, out_dir: Path, width: int = 960, height: int = 7
     (out_dir / "preview_zero.png").write_bytes(png_bytes(img_zero))
     previews.append(Preview("preview_zero.png", "All mechanisms at zero"))
 
-    # §10.3 item 2: with zero poses published the model must look the same as with no poses at all.
+    # §10.3 item 2: with zero poses published the model must look the same as with no poses at all. A joint with a
+    # zero offset is meant to sit away from its export pose at code zero, so it is checked at its export pose instead.
+    offset_joints = [c["joint"] for c in manifest["components"] if float(c.get("zero_offset", 0.0)) != 0.0]
+    img_check = render(at(zero, use_zero_offset=False), width, height) if offset_joints else img_zero
     robot = from_config(config.get("rotations", []), config.get("position", [0, 0, 0]))
     img_none = render(_placed(base, comps, [robot] * len(comps)), width, height)
-    differing = int(np.count_nonzero(np.any(np.abs(img_zero.astype(int) - img_none.astype(int)) > 2, axis=2)))
+    differing = int(np.count_nonzero(np.any(np.abs(img_check.astype(int) - img_none.astype(int)) > 2, axis=2)))
 
     for name, (lo, hi) in signal_ranges(manifest).items():
         for label, value in (("min", lo), ("max", hi)):
@@ -307,7 +315,7 @@ def render_folder(folder: Path, out_dir: Path, width: int = 960, height: int = 7
             previews.append(
                 Preview(file, f"{name} at its {'lowest' if label == 'min' else 'highest'} limit ({value:.3g})")
             )
-    return RenderResult(previews, differing)
+    return RenderResult(previews, differing, offset_joints)
 
 
 def preview_markdown(result: RenderResult, link_base: str) -> str:
@@ -320,6 +328,13 @@ def preview_markdown(result: RenderResult, link_base: str) -> str:
         lines.append(
             f"Zero-pose check (PLAN §10.3 item 2): **{result.zero_check_pixels} pixels differ** between zero poses and no "
             "poses. A component will jump when the robot code starts publishing poses. Check the export pose (PLAN §4 C6)."
+        )
+    if result.offset_joints:
+        lines.append("")
+        lines.append(
+            "Joints with a `zero_offset` were checked at their export pose, because the offset moves them on purpose: "
+            + ", ".join(f"`{j}`" for j in result.offset_joints)
+            + "."
         )
     lines.append("")
     base = link_base.rstrip("/") + "/" if link_base else ""

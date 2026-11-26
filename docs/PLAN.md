@@ -417,7 +417,7 @@ Build it in eight phases, each ending in a pull request and a stop for Bill's re
 | 2. Mesh reduction | #3 | Size met: 2026 at 13.0 MB and 2025 at 14.6 MB, both under 300,000 triangles. Load time on a team laptop not yet measured (decision #5). |
 | 3. Code generation | #5 | Generated Java compiles and passes its tests against WPILib 2026, in CI too. §10.3 items 2, 3 and 7 on the 2026 robot wait on the CAD edits and a 2026 code branch. |
 | 4. Onshape API | #4 | `run` works end to end from a URL (workspace route, 82 s, 11 calls; cached re-run 1 call). Version route waits on a Version in the copy. |
-| 5. CI | #6 | Workflow, zip drops and previews built and tested locally. Not yet run in a real robot repo. |
+| 5. CI | #6 | Both drop routes (commit-back and pull request) pass in a test robot repo, and the preview images display in the pull request page. The Onshape route and P2 from a MacBook browser are not yet checked. |
 | 6. Documentation | #7 | Procedures P1 to P5, printable sheets, README and CLAUDE.md done. New-student test (§10.3 item 6) pending. |
 | 7. Pilots and handover | | Not started. |
 

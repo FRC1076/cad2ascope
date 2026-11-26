@@ -51,7 +51,7 @@
     <li><code>uvx --from git+https://github.com/FRC1076/cad2ascope cad2ascope inspect export.zip</code>: every <code>j_</code> mate says MOVES; fix any Notes.</li>
     <li><code>&hellip; cad2ascope init export.zip --name "1076 2027"</code> writes <code>cad/advantagescope.yaml</code>. Fill in signals, ratios, directions, <code>onshape_url</code>.</li>
     <li><code>&hellip; cad2ascope run --zip export.zip</code>, then wire <code>RobotVisualizer</code> and <code>visualizer.set(...)</code> calls; <code>./gradlew test</code>.</li>
-    <li>Mentor: copy the workflow, add secrets <code>ONSHAPE_ACCESS_KEY</code> / <code>ONSHAPE_SECRET_KEY</code> and variable <code>ONSHAPE_BASE_URL</code>, allow Actions to write and open pull requests, add <code>cad/drops/.gitkeep</code>.</li>
+    <li>Mentor: copy the workflow, add secrets <code>ONSHAPE_ACCESS_KEY</code> / <code>ONSHAPE_SECRET_KEY</code> and variable <code>ONSHAPE_BASE_URL</code>, allow Actions to write and open pull requests, add <code>cad/drops/.gitkeep</code>, add <code>!cad/drops/*.zip</code> to <code>.gitignore</code>.</li>
     <li>Do P2 once to confirm.</li>
   </ol>
   <footer>Full version: docs/robot-model/P1-season-setup.md</footer>

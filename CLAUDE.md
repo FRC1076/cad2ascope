@@ -4,7 +4,7 @@
 
 ## Status
 
-Phases 0 to 6 are merged (as of 2026-11-25); PLAN §11 has each phase's exit status. Phase 7 (pilots) needs the student's Onshape edits and a robot repo. What still waits on people is in `docs/HUMAN-CHECKLIST.md`.
+Phases 0 to 6 are merged, plus follow-up checks in pull requests #9 to #12 (as of 2026-11-26); PLAN §11 has each phase's exit status. Everything that could be done without a person is done. Phase 7 (pilots) needs the student's Onshape edits, the Onshape secrets in a robot repo, and team decisions. `docs/HUMAN-CHECKLIST.md` lists those 18 items and where to start.
 
 ## Read first, in this order
 

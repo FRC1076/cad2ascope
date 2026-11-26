@@ -23,6 +23,7 @@ Three pieces make PLAN §9 P2 ("Update the model", about two minutes of clicks) 
 - Repository secrets `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY` (the read-only key); repository variable `ONSHAPE_BASE_URL` = `https://aaps.onshape.com`.
 - Settings > Actions > General > Workflow permissions: "Read and write permissions", and "Allow GitHub Actions to create and approve pull requests".
 - `cad/advantagescope.yaml`, and an empty `cad/drops/` (a `.gitkeep` file) so students can upload into it from the web UI.
+- `!cad/drops/*.zip` at the end of `.gitignore`: WPILib's `.gitignore` has `*.zip`, which blocks committing a drop with git (found in the test repo, 2026-11-25).
 - `build/` is already ignored in a WPILib project; the report is written there.
 
 ## Verified

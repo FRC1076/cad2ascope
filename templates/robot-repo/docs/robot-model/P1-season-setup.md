@@ -38,4 +38,5 @@ Needs [uv](https://docs.astral.sh/uv/) (no admin rights) and the robot repo.
    - Add the repository secrets `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY` (read-only key) and the variable `ONSHAPE_BASE_URL`.
    - Under Settings > Actions > General, allow read and write permissions and allow Actions to create pull requests.
    - Add an empty `cad/drops/.gitkeep`.
+   - Add the line `!cad/drops/*.zip` at the end of `.gitignore`. WPILib's `.gitignore` ignores every `.zip`, so without it a dropped export cannot be committed from a laptop.
 8. Commit everything, then do [P2](P2-update-model.md) once to confirm the workflow works.

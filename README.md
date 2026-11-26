@@ -57,7 +57,7 @@ With an Onshape API key (read-only is enough), `cad2ascope run` exports the late
 
 ## Status
 
-Phases 0 to 5 of the [plan](docs/PLAN.md) are built and tested against synthetic robots and against real exports of 1076's 2025 and 2026 robots. The pilot runs on those robots (Phase 7) are next. Until the first release tag, `main` may change; pin a commit or tag in robot repos.
+Phases 0 to 6 of the [plan](docs/PLAN.md) (code and documentation) are built and tested against synthetic robots and against real exports of 1076's 2025 and 2026 robots. The pilot runs on those robots (Phase 7) are next. Until the first release tag, `main` may change; pin a commit or tag in robot repos.
 
 ## Development
 

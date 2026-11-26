@@ -408,6 +408,19 @@ Names are taken from the subsystem folders in each code repo. The CAD may split 
 
 Build it in eight phases, each ending in a pull request and a stop for Bill's review. Phase 0 matters most, because two facts the design rests on are unverified. The goal is Phases 0 to 5 done before the January 2027 kickoff, so the 2027 robot uses the pipeline from its first assembly. [CONFIRM target]
 
+*Status on 2026-11-25:* the code for Phases 0 to 6 is merged to `main` (pull requests #1 to #7; Phase 4 was built before Phase 3). Most phases' exit criteria need the pilot robots, so they wait on people; `docs/HUMAN-CHECKLIST.md` has the list.
+
+| Phase | Merged | Exit criterion |
+| --- | --- | --- |
+| 0. Verification spike | #1 | Section B done. Section A done except A6 (mate connectors) and A7 (relations), which wait on the student's Onshape edits. Decision gate: native exporter through the API. |
+| 1. Core build | #2 | Builds the real 2026 export. Line-up at zero in AdvantageScope itself not yet checked (needs the CAD edits and a team laptop). |
+| 2. Mesh reduction | #3 | Size met: 2026 at 13.0 MB and 2025 at 14.6 MB, both under 300,000 triangles. Load time on a team laptop not yet measured (decision #5). |
+| 3. Code generation | #5 | Generated Java compiles and passes its tests against WPILib 2026, in CI too. §10.3 items 2, 3 and 7 on the 2026 robot wait on the CAD edits and a 2026 code branch. |
+| 4. Onshape API | #4 | `run` works end to end from a URL (workspace route, 82 s, 11 calls; cached re-run 1 call). Version route waits on a Version in the copy. |
+| 5. CI | #6 | Workflow, zip drops and previews built and tested locally. Not yet run in a real robot repo. |
+| 6. Documentation | #7 | Procedures P1 to P5, printable sheets, README and CLAUDE.md done. New-student test (§10.3 item 6) pending. |
+| 7. Pilots and handover | | Not started. |
+
 1. **Phase 0, verification spike.** Answer these with real exports of the 2026 robot copy, and write the answers to `docs/phase0-findings.md` (checklist in `docs/PHASE0-CHECKLIST.md`).
     - The exact Onshape API call for URDF with glTF meshes on aaps.onshape.com, including the parameters for configuration, version, mesh resolution, and merging rigid subassemblies. Use the API Explorer and `getAllTranslatorFormats`.
     - Whether the native exporter includes mates inside flexible subassemblies, keeps mate names as joint names, exports mate connectors as frames, and turns relations into `<mimic>`.

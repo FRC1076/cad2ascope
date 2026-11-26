@@ -4,7 +4,7 @@
 
 ## Status
 
-Phases 0 to 5 are merged (as of 2026-11-25), and Phase 6 (documentation: the student procedures in `templates/robot-repo/docs/robot-model/`, this file, the README) is in review. Phase 7 (pilots) needs the student's Onshape edits and a robot repo. What still waits on people is in `docs/HUMAN-CHECKLIST.md`.
+Phases 0 to 6 are merged (as of 2026-11-25); PLAN §11 has each phase's exit status. Phase 7 (pilots) needs the student's Onshape edits and a robot repo. What still waits on people is in `docs/HUMAN-CHECKLIST.md`.
 
 ## Read first, in this order
 

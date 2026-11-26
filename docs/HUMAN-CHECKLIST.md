@@ -1,6 +1,6 @@
 # What needs a person
 
-Everything below is blocked on a person, not on code. Status as of 2026-11-25, after Phases 0 to 5 merged. Details for each item follow the checklist.
+Everything below is blocked on a person, not on code. Status as of 2026-11-25, after Phases 0 to 6 merged. Details for each item follow the checklist.
 
 ## Checklist
 
@@ -23,10 +23,10 @@ Everything below is blocked on a person, not on code. Status as of 2026-11-25, a
 
 **Decisions**
 - [ ] 12. Software lead: open decisions #5, #6, #7, #8, #12
-- [ ] 13. Bill: decision #10, and record the API key owner and date
-- [ ] 14. Bill: plan doc or `PLAN.md` as the source of truth
-- [ ] 15. Bill: tag a cad2ascope release for robot repos to pin
-- [ ] 16. Bill (optional): report AdvantageScope's FOV mismatch upstream
+- [ ] 13. Bill: decision #10 (which laptops may hold the key)
+- [ ] 14. Bill: plan doc or `PLAN.md` as the source of truth (decision #16)
+- [ ] 15. Bill: tag a cad2ascope release for robot repos to pin (decision #15)
+- [ ] 16. Bill: agree to the camera FOV rule, and optionally report the mismatch upstream (decision #14)
 
 ---
 
@@ -57,7 +57,7 @@ The elevator stages in "Three Stage w Grabber Pivot" are Planar mates. They beco
 - Revolute or Slider mates only, always with limits;
 - Onshape cuts closed loops itself.
 
-Bill and the Design leads own these conventions (DECISIONS #3). Once approved, remove the "Proposed" markers and add them to the team's CAD standards.
+Bill and the Design leads own these conventions (DECISIONS #3; open as #13). Once approved, remove the "Proposed" markers and add them to the team's CAD standards.
 
 ## 5. Set up the workflow in a robot repo and run it once
 
@@ -107,18 +107,18 @@ From [DECISIONS.md](DECISIONS.md):
 - **#8** AdvantageKit `Logger` or WPILib `Telemetry` for 2027 (only two lines in `RobotVisualizer` depend on it);
 - **#12** where the shared AdvantageScope layout file lives.
 
-## 13. Bill: decision #10, and record the key owner
+## 13. Bill: decision #10
 
-Decide which laptops may hold the local API key (draft: mentor-managed laptops only), per [DECISIONS.md](DECISIONS.md) #10. PLAN §5 also asks to record the key owner and its creation date (2026-11-25) in the decisions doc, and to rotate the key each August.
+Decide which laptops may hold the local API key (draft: mentor-managed laptops only), per [DECISIONS.md](DECISIONS.md) #10. The key's owner and creation date are now recorded under decision #1; rotate it each August (PLAN §5).
 
-## 14. Bill: plan doc or `PLAN.md` as the source of truth
+## 14. Bill: plan doc or `PLAN.md` as the source of truth (decision #16)
 
 The [README](../README.md) leaves open whether the living Claude Doc plan or `docs/PLAN.md` is authoritative. `PLAN.md` has had many Phase 0 to 5 updates since the snapshot. Either copy those changes back into the doc, or retire the doc.
 
-## 15. Bill: tag a cad2ascope release
+## 15. Bill: tag a cad2ascope release (decision #15)
 
 The workflow template and the Gradle task install cad2ascope from `main` (`CAD2ASCOPE_REF: main`). Before a robot repo depends on it, tag a release (for example `v0.1.0`) and set that tag in both files. Then a later change to `main` cannot break a robot repo mid-season.
 
-## 16. Bill (optional): report AdvantageScope's FOV mismatch upstream
+## 16. Bill: the camera FOV rule (decision #14)
 
 AdvantageScope's docs describe a camera's `fov` as horizontal, but the renderer uses `fov / aspect` as the vertical FOV, so the view is narrower than documented. cad2ascope compensates (Phase 0 B5, in [phase0-findings.md](phase0-findings.md)). Reporting it to [Mechanical-Advantage/AdvantageScope](https://github.com/Mechanical-Advantage/AdvantageScope) is your call.

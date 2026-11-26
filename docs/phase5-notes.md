@@ -52,7 +52,7 @@ Two problems found and fixed in the same pull request as these notes:
 ## Not verified: Phase 5 exit criterion (PLAN §11, "P2 works from a MacBook browser")
 
 Still open after the test repo runs:
-- whether the preview images display in the pull request page (the repo is private, and they are linked as `blob/<branch>/cad/previews/...`; the files are there, but nobody signed in has looked yet);
+- whether the preview images display in the pull request page with `raw/` links. The first run linked them as `blob/<branch>/cad/previews/...`; those did not display (a `blob/` address is the file's web page, not the image), though each opened when clicked. The workflow now links `raw/<branch>/...`, and test-repo pull request #1's body was edited to match by hand;
 - the Onshape route (Run workflow), which needs the secrets, `robot.onshape_url` and a Version;
 - the export cache restoring, which only the Onshape route uses;
 - a student doing P2 from a MacBook browser (the runs above were pushed with git).

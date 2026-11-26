@@ -225,6 +225,7 @@ def test_workflow_never_pastes_inputs_into_scripts():
 def test_workflow_cad2ascope_arguments_parse():
     text = WORKFLOW.read_text()
     assert "args=(ci --link-base" in text and "--version" in text and "--workspace" in text
+    assert "/raw/${{ steps.target.outputs.branch }}/cad/previews" in text  # blob/ links show as broken images
     args = build_parser().parse_args(["ci", "--link-base", "x", "--version", "Week 4", "--workspace"])
     assert args.onshape_version == "Week 4" and args.workspace and args.link_base == "x"
     wf = yaml.safe_load(WORKFLOW.read_text())

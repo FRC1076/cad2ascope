@@ -1,6 +1,6 @@
 # Decisions
 
-Status as of 2026-11-25 (end of day, after Phases 0 to 6 merged). Six of twelve original decisions are decided; four more (#13 to #16) came up during the build and are open. Claude Code should treat an "Open" item as a question to raise when its phase arrives, not as something to decide alone.
+Status as of 2026-11-26 (after Phases 0 to 6 and follow-ups #9 to #12 merged; `docs/HUMAN-CHECKLIST.md` lists who decides what). Six of twelve original decisions are decided; four more (#13 to #16) came up during the build and are open. Claude Code should treat an "Open" item as a question to raise when its phase arrives, not as something to decide alone.
 
 | # | Decision | Owner | Needed by | Status | Answer |
 | --- | --- | --- | --- | --- | --- |

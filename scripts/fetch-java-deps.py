@@ -1,4 +1,4 @@
-"""Download the WPILib and JUnit jars the generated-Java tests need, into a Maven-layout folder.
+"""Download the WPILib, AdvantageKit and JUnit jars the generated-Java tests need, into a Maven-layout folder.
 
     python scripts/fetch-java-deps.py <folder>      then   WPILIB_MAVEN=<folder> uv run pytest
 
@@ -16,6 +16,7 @@ import requests  # carries its own CA bundle; urllib in uv's macOS Python has no
 
 WPILIB = "https://frcmaven.wpi.edu/artifactory/release"
 CENTRAL = "https://repo1.maven.org/maven2"
+AKIT = "https://frcmaven.wpi.edu/artifactory/littletonrobotics-mvn-release"  # from AdvantageKit's vendordep
 WPI_VERSION = "2026.2.1"
 JARS = [
     (WPILIB, "edu.wpi.first.wpimath", "wpimath-java", WPI_VERSION),
@@ -25,6 +26,7 @@ JARS = [
     (WPILIB, "edu.wpi.first.wpilibNewCommands", "wpilibNewCommands-java", WPI_VERSION),
     (WPILIB, "edu.wpi.first.hal", "hal-java", WPI_VERSION),
     (WPILIB, "edu.wpi.first.ntcore", "ntcore-java", WPI_VERSION),
+    (AKIT, "org.littletonrobotics.akit", "akit-java", "26.0.2"),  # FRC 1076's 2026 robot code uses this
     (CENTRAL, "org.ejml", "ejml-core", "0.44.0"),
     (CENTRAL, "org.ejml", "ejml-ddense", "0.44.0"),
     (CENTRAL, "org.ejml", "ejml-simple", "0.44.0"),

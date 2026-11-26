@@ -39,13 +39,23 @@ Three pieces make PLAN §9 P2 ("Update the model", about two minutes of clicks) 
   - the workflow's pinned actions, its no-interpolation rule, and its `cad2ascope ci` arguments.
 - Real 2026 model (reduced, 296 k triangles): one preview in about 12 s, zero-pose check 0 pixels.
 
+## Test repo runs (2026-11-25)
+
+`FRC1076/cad2ascope-test-robot` (private) is a minimal WPILib 2026 project: GradleRIO 2026.2.1, the AdvantageKit and command vendordeps, an empty `Robot`, the workflow copied unchanged, and the synthetic `coupled` fixture as its robot. It has no Onshape secrets. Both drop runs installed cad2ascope from `main` and passed, each in about a minute:
+- **Drop on a branch** (`drop-test`): the job built, ran `./gradlew test` (the generated `RobotModelTest` passes), removed the zip, and committed 16 files back onto the branch. As expected, the bot's commit started no further run.
+- **Drop on `main`:** `create-pull-request` opened `robot-model/update` with `report.md` as its body and the five preview PNGs on that branch.
+
+Two problems found and fixed in the same pull request as these notes:
+- WPILib's `.gitignore` has `*.zip`, so `git add` refuses a dropped export. The setup steps now add `!cad/drops/*.zip`.
+- The zero-pose check reported 7,199 differing pixels and told the student to re-check the export pose. The cause was `j_wrist`'s deliberate 10° `zero_offset`. Joints with a zero offset are now checked at their export pose, and the report names them.
+
 ## Not verified: Phase 5 exit criterion (PLAN §11, "P2 works from a MacBook browser")
 
-The workflow has not run in a real robot repo. That needs a robot repo (or a test repo) with the secrets and settings above, and ideally the student's CAD edits so there is a Version to export. GitHub-specific behavior that only a real run shows:
-- the commit-back push;
-- create-pull-request with `body-path`;
-- preview images loading from `blob/<branch>/cad/previews/...` links in the pull request body;
-- the cache restoring.
+Still open after the test repo runs:
+- whether the preview images display in the pull request page (the repo is private, and they are linked as `blob/<branch>/cad/previews/...`; the files are there, but nobody signed in has looked yet);
+- the Onshape route (Run workflow), which needs the secrets, `robot.onshape_url` and a Version;
+- the export cache restoring, which only the Onshape route uses;
+- a student doing P2 from a MacBook browser (the runs above were pushed with git).
 
 Also note: commits pushed by the workflow's `GITHUB_TOKEN` do not start other workflows, so the robot repo's own build check will not rerun on the bot's commit until someone pushes again. That is GitHub's rule to prevent loops.
 

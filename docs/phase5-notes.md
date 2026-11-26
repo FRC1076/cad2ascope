@@ -45,14 +45,14 @@ Three pieces make PLAN §9 P2 ("Update the model", about two minutes of clicks) 
 - **Drop on a branch** (`drop-test`): the job built, ran `./gradlew test` (the generated `RobotModelTest` passes), removed the zip, and committed 16 files back onto the branch. As expected, the bot's commit started no further run.
 - **Drop on `main`:** `create-pull-request` opened `robot-model/update` with `report.md` as its body and the five preview PNGs on that branch.
 
-Two problems found and fixed in the same pull request as these notes:
+Three problems found and fixed in the same pull request as these notes:
+- The first run linked the preview images as `blob/<branch>/cad/previews/...`. They did not display in the pull request page (a `blob/` address is the file's web page, not the image), though each opened when clicked. The workflow now links `raw/<branch>/...`. With test-repo pull request #1's body edited to `raw/` links, Bill confirmed all five images display (2026-11-26, signed in to GitHub; the repo is private).
 - WPILib's `.gitignore` has `*.zip`, so `git add` refuses a dropped export. The setup steps now add `!cad/drops/*.zip`.
 - The zero-pose check reported 7,199 differing pixels and told the student to re-check the export pose. The cause was `j_wrist`'s deliberate 10° `zero_offset`. Joints with a zero offset are now checked at their export pose, and the report names them.
 
 ## Not verified: Phase 5 exit criterion (PLAN §11, "P2 works from a MacBook browser")
 
 Still open after the test repo runs:
-- whether the preview images display in the pull request page with `raw/` links. The first run linked them as `blob/<branch>/cad/previews/...`; those did not display (a `blob/` address is the file's web page, not the image), though each opened when clicked. The workflow now links `raw/<branch>/...`, and test-repo pull request #1's body was edited to match by hand;
 - the Onshape route (Run workflow), which needs the secrets, `robot.onshape_url` and a Version;
 - the export cache restoring, which only the Onshape route uses;
 - a student doing P2 from a MacBook browser (the runs above were pushed with git).

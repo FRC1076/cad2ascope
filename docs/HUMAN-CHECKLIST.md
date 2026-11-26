@@ -76,11 +76,11 @@ On a branch of [FRC1076/2026-Competition](https://github.com/FRC1076/2026-Compet
 - add `visualizer.set(Signal.X, …)` in each subsystem's `periodic()`;
 - use `RobotModel.Cameras` in place of the hand-typed `PhotonConfig` transforms once item 9 agrees.
 
-See [phase3-notes.md](phase3-notes.md).
+A trial of this for the hood alone worked (2026-11-25). Its six lines of wiring and what to watch for are in [phase3-notes.md](phase3-notes.md), under "Trial on the 2026 robot code".
 
 ## 7. Run the joint sweep in simulation and watch it
 
-Schedule `SweepRobotModel` in simulation and open the log in AdvantageScope with the custom assets folder set to `assets/advantagescope`. Every component must stay attached at its joint through its whole range (PLAN §10.3 item 3). The build already checks item 2 automatically, by comparing zero poses against no poses in the previews.
+Schedule `SweepRobotModel` in simulation (with `CommandScheduler.getInstance().schedule(…)`) and open the log in AdvantageScope with the custom assets folder set to `assets/advantagescope`. Every component must stay attached at its joint through its whole range (PLAN §10.3 item 3). The build already checks item 2 automatically, by comparing zero poses against no poses in the previews.
 
 ## 8. Replay 2026 match logs with the model
 

@@ -2,7 +2,7 @@
 
 package {{ visualizer_package }};
 
-import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import {{ package }}.RobotModel;
 import {{ package }}.RobotModel.Signal;
@@ -11,11 +11,14 @@ import {{ package }}.RobotModel.Signal;
  * Moves each mechanism from its lowest to its highest CAD limit and back, one at a time, while every other mechanism
  * stays at zero. Run it in simulation and watch the replay in AdvantageScope: every part should stay attached at its
  * joint through the whole sweep (PLAN §10.3 item 3). It only changes what is drawn, never what the robot does.
+ *
+ * <p>Time advances one robot loop (20 ms) per call, not by the clock, so the slow first loops right after the
+ * simulator starts cannot skip part of the sweep.
  */
 public class SweepRobotModel extends Command {
   private final RobotVisualizer visualizer;
   private final double secondsPerSignal;
-  private final Timer timer = new Timer();
+  private int loops;
 
   public SweepRobotModel(RobotVisualizer visualizer, double secondsPerSignal) {
     this.visualizer = visualizer;
@@ -28,7 +31,7 @@ public class SweepRobotModel extends Command {
 
   @Override
   public void initialize() {
-    timer.restart();
+    loops = 0;
   }
 
   @Override
@@ -37,7 +40,7 @@ public class SweepRobotModel extends Command {
     if (signals.length == 0) {
       return;
     }
-    double t = timer.get();
+    double t = loops++ * TimedRobot.kDefaultPeriod;
     int i = Math.min((int) (t / secondsPerSignal), signals.length - 1);
     double phase = (t - i * secondsPerSignal) / secondsPerSignal;
     double[] values = RobotModel.zeroSignals();
@@ -48,7 +51,7 @@ public class SweepRobotModel extends Command {
 
   @Override
   public boolean isFinished() {
-    return timer.get() >= secondsPerSignal * Signal.values().length;
+    return loops * TimedRobot.kDefaultPeriod >= secondsPerSignal * Signal.values().length;
   }
 
   @Override

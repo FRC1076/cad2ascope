@@ -4,9 +4,11 @@ Phase 0 writes no product code. It answers the questions the design rests on, re
 
 Inputs you need from Bill before starting:
 
-- [ ] A copy of the 2026 Rebuilt main assembly document, shared with the API key owner. Bill makes the copy, never the original.
-- [ ] `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY` in your local environment (read-only key).
-- [ ] Optional: a manual URDF export zip of the same assembly, downloaded from the Onshape UI, for comparison.
+*Status 2026-11-25: answered except A6 and A7; see `docs/phase0-findings.md`.*
+
+- [x] A copy of the 2026 Rebuilt main assembly document, shared with the API key owner. Bill makes the copy, never the original. (Copies of 2025 and 2026 made; URLs in `private/`.)
+- [x] `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY` in your local environment (read-only key). (In the macOS Keychain; loaded with `scripts/onshape-env.sh`.)
+- [x] Optional: a manual URDF export zip of the same assembly, downloaded from the Onshape UI, for comparison. (2025, 2026, and 2026 with rigid subassemblies merged.)
 - [ ] For A5 to A7: Bill or a Design lead edits the copy in the Onshape UI (rename a mate, add connectors, add a relation) and creates a new Version. The API key is read-only, so Claude Code cannot make these edits.
 
 Base URL is `https://aaps.onshape.com`. Enterprise accounts replace `cad` in API URLs with the company domain.
